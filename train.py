@@ -31,11 +31,12 @@ if __name__ == "__main__":
 
     def handle_signal(sig, frame):
         global stopping
-        run.logger.info(f"Caught signal {sig}. Stoppping after this epoch")
-        stopping = True
+        if sig == signal.SIGTERM or sig == signal.SIGINT:
+            run.logger.info(f"Caught signal {sig}. Stoppping after this epoch")
+            stopping = True
 
-    signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
 
     dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=True, max_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "train_files.csv"))
     valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_samples=int(run.cfg.max_samples * 0.2 / 0.8), file_list=pth.join(run.dir, "valid_files.csv"))
