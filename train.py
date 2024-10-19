@@ -8,6 +8,7 @@ from rocnet.dataset import Dataset
 from rocnet.rocnet import DEFAULT_CONFIG as MODEL_DEFAULTS
 from rocnet.trainer import DEFAULT_CONFIG as TRAIN_DEFAULTS
 from rocnet.trainer import Trainer
+import rocnet.utils
 
 import utils
 
@@ -41,4 +42,5 @@ if __name__ == "__main__":
     dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=True, max_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "train_files.csv"))
     valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_samples=int(run.cfg.max_samples * 0.2 / 0.8), file_list=pth.join(run.dir, "valid_files.csv"))
     trainer = Trainer(run.run_dir, run.cfg, dataset, valid_dataset)
+    rocnet.utils.save_file(pth.join(run.run_dir, "train.toml"), run.cfg)
     trainer.train(on_epoch)

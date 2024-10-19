@@ -108,7 +108,7 @@ def search_runs(parent, run_type="notempty"):
         raise ValueError(f"run_type should be one of ['empty', 'notempty', 'all']. Current value={run_type}")
 
     if isinstance(parent, list):
-        return [r for rr in [search_runs(p) for p in parent] for r in rr]
+        return [r for rr in [search_runs(p, run_type) for p in parent] for r in rr]
 
     dt = dir_type(parent)
     if dt == "training-run":
@@ -127,7 +127,9 @@ def search_runs(parent, run_type="notempty"):
         return None
 
     elif dt == "run-collection":
-        runs = [search_runs(d, run_type) for d in glob.glob(pth.join(parent, "*")) if dir_type(d) == "training-run"]
+        dirs = glob.glob(pth.join(parent, "train_*"))
+        dirs = [d for d in dirs if pth.isdir(d)]
+        runs = [search_runs(d, run_type) for d in dirs]
         return [r for r in runs if r is not None]
     elif dt == "run-collection-collection":
         return [rc for rcc in [search_runs(p, run_type) for p in glob.glob(pth.join(parent, "*")) if pth.isdir(p)] for rc in rcc]
@@ -281,8 +283,10 @@ class Run:
         self.dir = out_dir
         self.run_dir = f"{self._run_prefix}_{self.START_TIME}" if is_collection else out_dir
         makedirs(self.run_dir, exist_ok=True)
-
-        logging.basicConfig(filename=pth.join(self.run_dir, f"{self.run_type}_{self.START_TIME}.log"), level=logging.INFO)
+        if is_collection:
+            logging.basicConfig(filename=pth.join(self.run_dir, f"{self.run_type}.log"), level=logging.INFO)
+        else:
+            logging.basicConfig(filename=pth.join(self.run_dir, f"{self.run_type}_{self.START_TIME}.log"), level=logging.INFO)
 
     def git_snapshot(self):
         # If git exists and this is being run in a repository, then a file with the name
