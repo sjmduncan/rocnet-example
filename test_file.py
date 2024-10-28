@@ -13,12 +13,6 @@ from test_tile import DEFAULT_CONFIG
 import open3d as o3d
 
 
-def model_id(m):
-    s_or_f = "f" if m.cfg.has_root_encoder else "s"
-    size = m.cfg.feature_code_size
-    return f"{s_or_f}{size:04}"
-
-
 vox_sz = 1.0
 
 if __name__ == "__main__":
@@ -37,14 +31,17 @@ if __name__ == "__main__":
         run.logger.error("Models must all have the same grid dim")
         [run.logger.error(cp, m._model.cfg.grid_dim) for (cp, m) in zip(run.cfg.models, codecs)]
         raise ValueError("Model grid_dims must all be the same")
-    models_files = [item for inner in [[[m, f] for f in run.cfg.files] for m in codecs] for item in inner]
-    files_out = [pth.join(files_dir, f"{pth.basename(n)}_{model_id(m._model)}.rnt") for m, n in models_files]
+    models_files = [item for inner in [[[m, f] for m in codecs] for f in run.cfg.files] for item in inner]
+    files_out = [pth.join(files_dir, f"{pth.basename(n)}_{utils.describe_run(pth.split(m._model.model_path)[0])['uid']}.rnt") for m, n in models_files]
 
     files_all = [[m[0], m[1], fo] for m, fo in zip(models_files, files_out)]
+
     for codec, file_in, file_out in files_all:
         results_file = f"{file_out}.toml"
         if pth.exists(results_file):
             results = load_file(results_file, quiet=True)
+            pts_in = lp.read(file_in)
+            pts_out = codec.decode(file_out)
         else:
             pts_in = lp.read(file_in)
             try:
@@ -60,12 +57,11 @@ if __name__ == "__main__":
             results.size_in = pth.getsize(file_in)
             results.size_out = pth.getsize(file_out)
             results.compression_ratio = results.size_in / results.size_out
-            results.model = model_id(codec._model)
-            save_file(results_file, results, overwrite=False)
-        print(toml.dumps(results))
+            save_file(results_file, results, overwrite=True)
+        print("\n", flush=True)
+        run.logger.info(f"{utils.describe_run(pth.split(codec._model.model_path)[0])['uid']:48} {results.compression_ratio:5.1f} {results.hamming_plus:10}+ {results.hamming_minus:10}- {results.chamfer:5.3f}")
+        run.logger.info(f"{pth.basename(file_in):48} {'':5} {100*results.hamming_plus/results.n_pts_in:9.1f}%+ {100*results.hamming_minus/results.n_pts_in:9.3}%-")
         if args.visualise:
-            pts_in = lp.read(file_in)
-            pts_out = codec.decode(file_out)
             pc1 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_in.xyz))
             pc2 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_out))
             utils.compact_view([pc1, pc2])

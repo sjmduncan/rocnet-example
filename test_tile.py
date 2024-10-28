@@ -23,6 +23,7 @@ DEFAULT_CONFIG = {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="test.py", description="Evaluate the performance of one or more RocNet models")
     parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
+    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true")
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "test", "test", False, DEFAULT_CONFIG)
@@ -33,7 +34,7 @@ if __name__ == "__main__":
         run.logger.error("Models must all have the same grid dim")
         [run.logger.error(cp, m.cfg.grid_dim) for (cp, m) in zip(run.cfg.models, models)]
         raise ValueError("Model grid_dims must all be the same")
-
+    model_ids = [utils.describe_run(pth.split(r)[0]) for r in model_paths]
     datasets = [Dataset(d, models[0].cfg.grid_dim, train=False, max_samples=run.cfg.n_samples) for d in run.cfg.datasets]
 
     original_gridsets = [[load_as_occupancy(d, models[0].cfg.grid_dim, scale=1.0 / dset.grid_div) for d in dset.files] for dset in datasets]
@@ -52,4 +53,4 @@ if __name__ == "__main__":
     cham = [[[utils.chamfer(d, dset[0]) for d in dset[1:]] for dset in dsets] for dsets in dataset]
     metrics = [[[p, m, c] for p, m, c in zip(hp, hm, chm)] for hp, hm, chm in zip(hdp, hdm, cham)]
 
-    utils.visualise_interactive(dataset, metrics, models[0].cfg.grid_dim)
+    utils.visualise_interactive(dataset, metrics, models[0].cfg.grid_dim, model_ids)

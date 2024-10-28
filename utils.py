@@ -40,6 +40,18 @@ def chamfer(p1, p2):
         return -1
 
 
+def hamming(v1, v2, two_sided=True):
+    vi2 = o3d.utility.Vector3dVector([v2.get_voxel_center_coordinate(v.grid_index) for v in v2.get_voxels()])
+    v2_in_v1 = np.array(v1.check_if_included(vi2))
+    result = np.sum(v2_in_v1 == False)
+    if two_sided:
+        vi1 = o3d.utility.Vector3dVector([v1.get_voxel_center_coordinate(v.grid_index) for v in v1.get_voxels()])
+        v1_in_v2 = np.array(v2.check_if_included(vi1))
+        result += np.sum(v1_in_v2 == False)
+
+    return result
+
+
 def vox_points(pts: o3d.geometry.PointCloud, vox_size: float):
     """Voxelize pointcloud, retrieve voxel centers, and return a pointcloud of those"""
     vox = o3d.geometry.VoxelGrid.create_from_point_cloud(pts, voxel_size=vox_size)
@@ -57,6 +69,8 @@ def compare_pts(ref: np.array, cmp: np.array, vox_size: float):
 
     cmp_pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(cmp))
     ref_pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(ref))
+    cmp_vox = o3d.geometry.VoxelGrid.create_from_point_cloud(cmp_pc, vox_size)
+    ref_vox = o3d.geometry.VoxelGrid.create_from_point_cloud(ref_pc, vox_size)
     ref_pc_ds = vox_points(ref_pc, vox_size)
 
     return ed(
@@ -70,6 +84,8 @@ def compare_pts(ref: np.array, cmp: np.array, vox_size: float):
             "q_hausdorff_minus": hausdorff(ref_pc_ds, cmp_pc, False),
             "q_chamfer": chamfer(ref_pc_ds, cmp_pc),
             "q_n_pts": len(ref_pc_ds.points),
+            "hamming_minus": hamming(cmp_vox, ref_vox, False),
+            "hamming_plus": hamming(ref_vox, cmp_vox, False),
         }
     )
 
@@ -113,24 +129,25 @@ def search_runs(parent, run_type="notempty"):
     dt = dir_type(parent)
     if dt == "training-run":
         if run_type == "all":
-            return parent
+            return [parent]
 
         snapshots = glob.glob(pth.join(parent, "*.pth"))
         n_models = len(snapshots)
         if n_models > 0 and "model.pth" not in [pth.basename(s) for s in snapshots]:
             print(f"Has snapshots but no final model.pth: {parent}")
         elif n_models == 0 and run_type == "empty":
-            return parent
+            return [parent]
         elif n_models > 0 and run_type == "notempty":
-            return parent
+            return [parent]
 
         return None
 
     elif dt == "run-collection":
         dirs = glob.glob(pth.join(parent, "train_*"))
         dirs = [d for d in dirs if pth.isdir(d)]
-        runs = [search_runs(d, run_type) for d in dirs]
-        return [r for r in runs if r is not None]
+        runs = [r for r in [search_runs(d, run_type) for d in dirs]]
+        runs = [r for r in runs if r is not None]
+        return [r for rr in runs for r in rr]
     elif dt == "run-collection-collection":
         return [rc for rcc in [search_runs(p, run_type) for p in glob.glob(pth.join(parent, "*")) if pth.isdir(p)] for rc in rcc]
 
@@ -142,6 +159,17 @@ def run_epochs(run_dir):
     return epochs
 
 
+def model_id(mc: dict):
+    """Return"""
+    s_or_f = "f" if mc.has_root_encoder else "s"
+    return f"{mc.grid_dim}-{s_or_f}{mc.feature_code_size}"
+
+
+def run_id(rc: dict):
+    """Get the id of a training run"""
+    return f"{model_id(rc.model)}"
+
+
 def describe_run(run):
     collection = pth.basename(pth.split(run)[0])
     time = pth.split(run)[1].replace("train_", "")
@@ -149,14 +177,7 @@ def describe_run(run):
     note = cfg.note
     epoch = run_epochs(run)
     max_epoch = max(epoch) if len(epoch) > 0 else 0
-    return ed(
-        {
-            "collection": collection,
-            "time": time,
-            "epochs": max_epoch,
-            "note": note,
-        }
-    )
+    return ed({"collection": collection, "time": time, "epochs": max_epoch, "note": note, "uid": f"{collection}-{time}-{run_id(cfg)}"})
 
 
 def compact_view(geometries, gdim=None):
@@ -179,18 +200,24 @@ def compact_view(geometries, gdim=None):
     return boxes
 
 
-def visualise_interactive(data, metrics, gdim):
+def visualise_interactive(data, metrics, gdim, model_meta):
     dataset_idx = 0
     sample_idx = 0
     look_sample_idx = 0
 
     bounding_boxes = [[compact_view(s, gdim) for s in d] for d in data]
 
+    def print_metric():
+        print()
+
+        for metric, meta in zip(np.array(metrics[dataset_idx][sample_idx]).T, model_meta):
+            print(f"{meta.collection:>24} {meta.time} {metric[0]:6.1f} {metric[1]:6.1f} {metric[2]:5.3f}")
+
     def update(vis):
         vis.clear_geometries()
         [vis.add_geometry(g, False) for g in data[dataset_idx][sample_idx]]
         [vis.add_geometry(g, False) for g in bounding_boxes[dataset_idx][sample_idx]]
-        print(np.array(metrics[dataset_idx][sample_idx]).T)
+        print_metric()
 
     def next_dataset(vis):
         nonlocal dataset_idx
@@ -233,7 +260,7 @@ def visualise_interactive(data, metrics, gdim):
     key_to_callback[ord("R")] = prev_dataset
     key_to_callback[ord("S")] = lookprev
     key_to_callback[ord("W")] = looknext
-    print(np.array(metrics[dataset_idx][sample_idx]).T)
+    print_metric()
     geometries = [g for g in data[dataset_idx][sample_idx]] + [g for g in bounding_boxes[dataset_idx][sample_idx]]
     o3d.visualization.draw_geometries_with_key_callbacks(geometries, key_to_callback)
 

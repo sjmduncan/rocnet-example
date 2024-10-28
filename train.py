@@ -15,6 +15,7 @@ import utils
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="train.py", description="Start rocnet training")
     parser.add_argument("folder", help="output folder, containing config in train.toml and where training run output", default="../rocnet.weights/default")
+    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true")
     args = parser.parse_args()
 
     TRAIN_DEFAULTS["model"] = MODEL_DEFAULTS
