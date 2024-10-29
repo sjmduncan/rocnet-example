@@ -2,6 +2,8 @@
 
 An example of how to prepare a RocNet dataset, train a model, and evaluate the accuracy of the model
 
+![An example of RocNet compression](./media/rocnet-compression.png "asdf")
+
 ## Setup
 
 Some prerequisites need specific versions, limited by Open3D and by the python versions supported by the cluster.:
