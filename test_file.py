@@ -4,7 +4,6 @@ import argparse
 import os.path as pth
 
 import laspy as lp
-import toml
 from rocnet.file import RocNetFile
 from rocnet.utils import load_file, save_file
 from os import makedirs
@@ -16,9 +15,9 @@ import open3d as o3d
 vox_sz = 1.0
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="test.py", description="Evaluate the performance of one or more RocNet models")
-    parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
-    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true")
+    parser = argparse.ArgumentParser(prog="test_file.py", description="Evaluate and visualise the per-file performance and lossiness of one or more models")
+    parser.add_argument("folder", help="Folder containing either train.toml or a test.toml file which points to multiple training runs to process")
+    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true", default=False)
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "test", "test-file", False, DEFAULT_CONFIG)

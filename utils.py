@@ -14,6 +14,7 @@ from easydict import EasyDict as ed
 import numpy as np
 import open3d as o3d
 from rocnet.utils import ensure_file, load_file
+import json
 
 
 def hausdorff(p1, p2, two_sided=True):
@@ -200,6 +201,79 @@ def compact_view(geometries, gdim=None):
     return boxes
 
 
+def vis_simple(data, paths, nonblocking=False):
+    sample_idx = 0
+    view = None
+
+    def save_rec_vew(vis):
+        jfile = pth.join(pth.split(paths[sample_idx])[0], "view.json")
+        jstr = vis.get_view_status()
+        with open(jfile, "w") as jfile_out:
+            jfile_out.write(jstr)
+
+    def load_rec_vew(vis):
+        nonlocal view
+        jfile = pth.join(pth.split(paths[sample_idx])[0], "view.json")
+        if not pth.exists(jfile):
+            return
+        with open(jfile, "r") as jfile_in:
+            jstr = jfile_in.read()
+        view = json.loads(jstr)["trajectory"][0]
+        vis.set_view_status(jstr)
+        vis.poll_events()
+        vis.update_renderer()
+
+    def snapshot(vis):
+        vis.capture_screen_image(paths[sample_idx], do_render=False)
+
+    def update(vis):
+        vis.clear_geometries()
+        vis.add_geometry(data[sample_idx], True)
+        vis.get_view_control().set_front(view["front"])
+        vis.get_view_control().set_lookat(view["lookat"])
+        vis.get_view_control().set_up(view["up"])
+        vis.get_view_control().set_zoom(view["zoom"])
+        vis.poll_events()
+        vis.update_renderer()
+        vis.reset_view_point(True)
+        print(paths[sample_idx])
+        snapshot(vis)
+
+    def save_all(vis):
+        nonlocal sample_idx
+        for s in range(len(data)):
+            sample_idx = s
+            load_rec_vew(vis)
+            update(vis)
+
+    def next_sample(vis):
+        nonlocal sample_idx
+        sample_idx = (sample_idx + 1) % len(data)
+        update(vis)
+
+    def prev_sample(vis):
+        nonlocal sample_idx
+        sample_idx = (sample_idx - 1 + len(data)) % len(data)
+        update(vis)
+
+    key_to_callback = {}
+    key_to_callback[ord("N")] = next_sample
+    key_to_callback[ord("B")] = prev_sample
+    key_to_callback[ord("S")] = snapshot
+    key_to_callback[ord("T")] = save_rec_vew
+    key_to_callback[ord("Y")] = load_rec_vew
+    key_to_callback[ord("U")] = save_all
+    tx_vec = -data[-1].get_center()
+    [d.translate(tx_vec) for d in data]
+    if nonblocking:
+        vis = o3d.visualization.Visualizer()
+        vis.create_window()
+        save_all(vis)
+        vis.destroy_window()
+    else:
+        o3d.visualization.draw_geometries_with_key_callbacks([data[sample_idx]], key_to_callback)
+
+
 def visualise_interactive(data, metrics, gdim, model_meta):
     dataset_idx = 0
     sample_idx = 0
@@ -332,6 +406,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs, models, and datasets")
     parser.add_argument("folder", help="Folder to operate on. Can be a training run or a dataset")
     parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots (e.g. crashes, hangs, training too slow)", action="store_true")
-    parser.add_argument("--examine", help="Delete training run folders which did not produce *.pth snapshots (e.g. crashes, hangs, training too slow)", action="store_true")
 
     args = parser.parse_args()

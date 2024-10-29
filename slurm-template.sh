@@ -2,13 +2,13 @@
 
 # use sinfo to list the available partitions on the cluster
 
-#SBATCH --account={SLURM_USERNAME}
-#SBATCH --partition={TGT_SLURM_PARTITION}
+#SBATCH --account=SLURM_USERNAME
+#SBATCH --partition=SLURM_TGT_PARTITION
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=64GB
 #SBATCH --time=7-00:00:00
-#SBATCH --signal=B:TERM@2700
-# 2700sec = 45mins (adjust to match your max epoch time)
+#SBATCH --signal=B:TERM@300
+# 300sec = 5 mins
 
 source {abs-path-to-rocnet-example/.venv}
 cd {abs-path-to-rocnet-example}

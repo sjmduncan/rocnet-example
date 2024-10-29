@@ -18,5 +18,7 @@ pip3 install numpy==1.26.4 open3d==0.18.0
 # https://pytorch.org/get-started/locally/
 pip3 install torch --index-url https://download.pytorch.org/whl/cu118
 
-# These aren't really useful
 pip3 install toml easydict matplotlib laspy[lazrs,laszip]
+
+# Install rocnet from the git repository
+pip3 install git+https://altitude.otago.ac.nz/rocnet/rocnet.git

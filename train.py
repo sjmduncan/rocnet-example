@@ -4,18 +4,18 @@ import argparse
 import os.path as pth
 import signal
 
+import rocnet.utils
 from rocnet.dataset import Dataset
 from rocnet.rocnet import DEFAULT_CONFIG as MODEL_DEFAULTS
 from rocnet.trainer import DEFAULT_CONFIG as TRAIN_DEFAULTS
 from rocnet.trainer import Trainer
-import rocnet.utils
 
 import utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="train.py", description="Start rocnet training")
-    parser.add_argument("folder", help="output folder, containing config in train.toml and where training run output", default="../rocnet.weights/default")
-    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true")
+    parser.add_argument("folder", help="Output <folder> which will contain train.toml and one or more train_<TIMESTAMP>")
+
     args = parser.parse_args()
 
     TRAIN_DEFAULTS["model"] = MODEL_DEFAULTS
