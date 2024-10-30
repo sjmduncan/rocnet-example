@@ -20,10 +20,11 @@ Some prerequisites need specific versions, limited by Open3D and by the python v
 2. Install CUDA 11.8 ([here](https://developer.nvidia.com/cuda-toolkit-archive))
 3. Acquire this repository `git clone --depth 1 https://altitude.otago.ac.nz/rocnet/rocnet-example.git`
 4. Run `setup.bat` (windows/cmd) *or* `setup.sh` (linux or windows/git-bash)
-5. Download  and extract [example-data.zip](https://share.sjmd.dev/rocnet/example-data.zip) (approx 1.3GB), this is a set of source `.laz` files, a dataset which supports voxel grid resolutions up to 128, and a training run (including model weights) for a model that uses 64-grid inputs. It contains three subfolders:
+5. Download [example-data.zip](https://share.sjmd.dev/rocnet/example-data.zip) (approx 1.3GB), this is a set of source `.laz` files, a dataset which supports voxel grid resolutions up to 128, and a training run (including model weights) for a model that uses 64-grid inputs. It contains three subfolders:
    1. `laz` - a colletion of `.laz` files
    2. `dataset` - a dataset of tiles created from the `.laz` files
-   3. `training` - a training config file, and an example training run with a set of model weights and training progress snapshots
+   3. `weights` - a training config file, and an example training run with a set of model weights and training progress snapshots
+6. Copy the `data` folder inside `example-data.zip` to `rocnet/example/data`
 
 To use the example scripts make sure that the virutal environment from step 3 above is active, and then invoke the train/test/examine scripts like this:
 
@@ -33,6 +34,7 @@ python examine_training_run.py ./data/weights/
 
 # Load some tiles from the test dataset, encode/decode them, print compression ratio
 # and some meterics of lossiness, and visualise the original and recovered
+# Use the N and B keys to cycle through the example tiles
 python test_tile.py ./data/weights
 
 # Load some tiles from the test dataset, encode/decode them, print compression ratio
