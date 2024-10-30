@@ -44,3 +44,29 @@ python test_file.py ./data/weights --visualise
 # Start a new training run with the configuration in ./data/weights/train.toml
 python train.py ./data/weights
 ```
+
+## General Usage
+
+Usage pattern for any script goes like this:
+
+1. run `python SCRIPT.py PATH`. This will create a `.toml` config file in `PATH`, prompt you to edit the file (e.g. to set paths and variables), and then exit.
+2. edit `PATH/*.toml` to set the approprate paths and values
+3. re-run `python SCRIPT.py PATH` to actually run the script
+
+The main .toml file names are `test.toml` and `train.toml`, but you can have others (e.g. `tiler.toml` for creating tiled datasets).
+
+General usage instructions can be used by invoking a script with `-h` or `--help`, and the process of training a model goes a bit like this:
+
+1. Acquire LIDAR data (e.g. from [opentopography](https://opentopography.org/))
+   1. `data/laz` from the Quickstart is an example
+2. Run `python tile.py PATH_OUT` where `PATH_OUT` is a directory where the tile dataset is created. If `PATH_OUT/tiler.toml` does not exist, the script will create it and prompt you to edit it.
+   1. `input_dir` should point to the folder containing the laz files acquired in step 1 (e.g. `./data/laz/`)
+   2. `grid_dim` and `vox_size` should be chosen so that most of the scan fits within the height of `grid_dim` and `vox_size` should be chosen so that continuous surfaces produce continuous 'shells of occupied voxels
+   3. Ensure that the relevant transforms are added (especially for smaller `.laz` scans)
+   4. `clean` to ensure that the pointclouds are cleaned before tiling
+3. Create a dataset of 'tiles' which can be efficiently loaded and used to train a RocNet model
+4. Run `python train.py PATH`, which will create `PATH` and `PATH/train.toml` with default values, the script will then exit and prompt you to edit the newly created train.toml, which at a minimum needs
+   1. `dataset_path` to point to the dataset folder 
+   2. `grid_dim` should be a power of two to 
+5. Re-run `python train.py PATH` to start a training run
+6. After it's finished, use the `test_*` and `examine_*` scripts to evaluate the result.
