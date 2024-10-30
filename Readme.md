@@ -18,8 +18,9 @@ Some prerequisites need specific versions, limited by Open3D and by the python v
 
 1. Install python 3.11 ([here](https://www.python.org/downloads/))
 2. Install CUDA 11.8 ([here](https://developer.nvidia.com/cuda-toolkit-archive))
-3. Run `setup.bat` (windows/cmd) *or* `setup.sh` (linux or windows/git-bash)
-4. Download  and extract [example-data.zip](https://share.sjmd.dev/rocnet/example-data.zip) (approx 1.3GB), this is a set of source `.laz` files, a dataset which supports voxel grid resolutions up to 128, and a training run (including model weights) for a model that uses 64-grid inputs. It contains three subfolders:
+3. Acquire this repository `git clone --depth 1 https://altitude.otago.ac.nz/rocnet/rocnet-example.git`
+4. Run `setup.bat` (windows/cmd) *or* `setup.sh` (linux or windows/git-bash)
+5. Download  and extract [example-data.zip](https://share.sjmd.dev/rocnet/example-data.zip) (approx 1.3GB), this is a set of source `.laz` files, a dataset which supports voxel grid resolutions up to 128, and a training run (including model weights) for a model that uses 64-grid inputs. It contains three subfolders:
    1. `laz` - a colletion of `.laz` files
    2. `dataset` - a dataset of tiles created from the `.laz` files
    3. `training` - a training config file, and an example training run with a set of model weights and training progress snapshots
