@@ -8,10 +8,10 @@ An example of how to prepare a RocNet dataset, train a model, and evaluate the a
 
 Some prerequisites need specific versions, limited by Open3D and by the python versions supported by the cluster.:
 
-- **Python 3.11**:  
+- **Python 3.11**: Required by Open3D 0.18  
+- **Cuda 11.8**: Only required if you want to use the 80GB A100 nodes on the Otago Uni cluster (otherwise use whatever CUDA you want)
 - `open3d==0.18.0`: Was the stable version during RocNet development
 - `numpy==1.26.4`: Required for compatibility with Open3d 0.18 (you'll get some fun silent crashes if you use a newer version with Open3D 0.18)
-- **Cuda 11.8**: Only required if you want to use the 80GB A100 nodes on the Otago Uni cluster (otherwise use whatever CUDA you want)
 
 
 ### Quickstart
