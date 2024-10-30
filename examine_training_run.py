@@ -16,14 +16,14 @@ def plot_loss(loss, title, run):
     sel = [2, 3, 4, 5, 6, 7]
     ax1.plot(loss[:, sel])
 
-    labels = ["R", "L", "T"]
+    labels = ["Recon", "Label", "Total"]
     min_loss = np.min(loss[:, sel], axis=0)
     epoch_min_loss = np.argmin(loss[:, sel], axis=0)
-    print(f"plotting {title} {pth.split(run)[1][6:]} {epoch_min_loss[-1]:3} {min_loss[-1]:6.1f}")
-    labels = labels + [l + "_V" for l in labels]
-    labels = labels + [f"{l:4}" + f"({x:5.1f}," + f"{y:5.1f})" for l, x, y in zip(labels, epoch_min_loss, min_loss)]
+    print(f"plotting {title} {pth.split(run)[1][6:]} min_loss={min_loss[-1]:<6.1f} at epoch {epoch_min_loss[-1]:3}")
+    labels = labels + [l + "_val" for l in labels]
+    labels = labels + [f"min {l:4}" + f"({x:5.1f}," + f"{y:5.1f})" for l, x, y in zip(labels, epoch_min_loss, min_loss)]
 
-    [ax1.plot(x, y, "x") for x, y in zip(epoch_min_loss, min_loss)]
+    [ax1.plot(x, y, "o") for x, y in zip(epoch_min_loss, min_loss)]
     ax1.legend(labels, ncols=4)
     ax1.set_title(title)
     ax1.set_xlim(0, loss[:, 7].shape[0])

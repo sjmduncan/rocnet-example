@@ -19,9 +19,10 @@ Some prerequisites need specific versions, limited by Open3D and by the python v
 1. Install python 3.11 ([here](https://www.python.org/downloads/))
 2. Install CUDA 11.8 ([here](https://developer.nvidia.com/cuda-toolkit-archive))
 3. Run `setup.bat` (windows/cmd) *or* `setup.sh` (linux or windows/git-bash)
-4. Download  and extract [example-data.zip](https://share.sjmd.dev/rocnet/example-data.zip), this contains two subfolders:
-   1. `dataset` - a dataset with tiles and original `.laz` files for training and testing
-   2. `training` - config files for training and testing, and an example of a training run
+4. Download  and extract [example-data.zip](https://share.sjmd.dev/rocnet/example-data.zip) (approx 1.3GB), this contains three subfolders:
+   1. `laz` - a colletion of `.laz` files
+   2. `dataset` - a dataset of tiles created from the `.laz` files
+   3. `training` - a training config file, and an example training run with a set of model weights and training progress snapshots
 
 To use the example scripts make sure that the virutal environment from step 3 above is active, and then invoke the train/test/examine scripts like this (for more info on usage, invoke the scripts with the `--help` argument):
 

@@ -8,7 +8,7 @@ import rocnet.utils
 from rocnet.dataset import Dataset
 from rocnet.rocnet import DEFAULT_CONFIG as MODEL_DEFAULTS
 from rocnet.trainer import DEFAULT_CONFIG as TRAIN_DEFAULTS
-from rocnet.trainer import Trainer
+from rocnet.trainer import Trainer, check_training_cfg
 
 import utils
 
@@ -20,6 +20,7 @@ if __name__ == "__main__":
 
     TRAIN_DEFAULTS["model"] = MODEL_DEFAULTS
     run = utils.Run(args.folder, "train", "train", True, TRAIN_DEFAULTS)
+    check_training_cfg(run.cfg)
 
     try:
         run.git_snapshot()
