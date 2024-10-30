@@ -42,32 +42,3 @@ python test_file.py ./data/weights --visualise
 # Start a new training run with the configuration in ./data/weights/train.toml
 python train.py ./data/weights
 ```
-
-## General Usage
-
-General usage instructions can be used by invoking a script with `-h` or `--help`, and the process of training a model goes a bit like this:
-
-1. Acquire LIDAR data (e.g. from [opentopography](https://opentopography.org/))
-2. (TODO: port tile.py from experiment repo) Run `python tile.py PATH` where PATH is a directory where the tile dataset is created, the script will exit and prompt you to edit the newly created `PATH/tiler.toml`
-   1. `input_dir` should point to the folder containing the laz files acquired in step 1
-   2. `grid_dim` and `vox_size` should be chosen so that most of the scan fits within the height of `grid_dim` and `vox_size` should be chosen so that continuous surfaces produce continuous 'shells of occupied voxels
-   3. Ensure that the relevant transforms are added (especially for smaller `.laz` scans)
-   4. `clean` to ensure that the pointclouds are cleaned before tiling
-3. Create a dataset of 'tiles' which can be efficiently loaded and used to train a RocNet model
-4. Run `python train.py PATH`, which will create `PATH` and `PATH/train.toml` with default values, the script will then exit and prompt you to edit the newly created train.toml, which at a minimum needs
-   1. `dataset_path` to point to the dataset folder 
-   2. `grid_dim` should be a power of two to 
-5. Re-run `python train.py PATH` to start a training run
-6. After it's finished, use the `test_*` and `examine_*` scripts to evaluate the result.
-
-## Cluster Training
-
-1. Follow the above setup instructions, but do it on the cluster
-2. Modify `slurm-template.sh`:
-   1. `SLURM_USERNAME` should be your login username on the cluster
-   2. `SLURM_TGT_PARTITION` is the target partition (run `sinfo` on the cluster to get a list of partitions)
-   3. `{abs-path-*}` should be absolute paths to the code and to the folder of training runs
-3. Modify `train.toml` in the training run folder so that the `dataset` value is an absolute path
-4. Run `sbatch slurm-template.sh`, run `squeue --me` and you should see the job listed. If it's running there will be a `R` in the `ST` column, and you should get:
-   1. A new training run in the training run folder (a subfolder with the name `train_{TIMESTAMP}`)
-   2. A log file in the working directory with the name `slurm-{JOBID}.out`
