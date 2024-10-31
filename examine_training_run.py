@@ -9,9 +9,11 @@ from rocnet.rocnet import RocNet
 
 import utils
 from test_tile import DEFAULT_CONFIG
+from torchinfo import summary
+from rocnet.utils import sizeof_fmt as sf
 
 
-def plot_loss(loss, title, run):
+def plot_loss(loss, title, run, n_params, logger):
     _, ax1 = plt.subplots(figsize=(10, 7))
     sel = [2, 3, 4, 5, 6, 7]
     ax1.plot(loss[:, sel])
@@ -19,7 +21,10 @@ def plot_loss(loss, title, run):
     labels = ["rec", "lab", "tot"]
     min_loss = np.min(loss[:, sel], axis=0)
     epoch_min_loss = np.argmin(loss[:, sel], axis=0)
-    print(f"plotting {title} {pth.split(run)[1][6:]} min_loss={min_loss[-1]:<6.1f} at epoch {epoch_min_loss[-1]:3}")
+    logger.info(f"plotting {title} {pth.split(run)[1][6:]}")
+    logger.info(f"         min_loss {min_loss[-1]:.1f} at epoch {epoch_min_loss[-1] + 1}")
+    logger.info(f"        n_weights {sf(n_params[0], '', True)} {sf(n_params[1], '', True)} {sf(n_params[2], '', True)} (encoder node_classifier decoder)")
+
     labels = labels + [l + "_vld" for l in labels]
     labels = labels + [f"min {l:4}" + f"({x:5.1f}," + f"{y:5.1f})" for l, x, y in zip(labels, epoch_min_loss, min_loss)]
 
@@ -44,8 +49,10 @@ if __name__ == "__main__":
     epoc = [utils.run_epochs(r) for r in runs]
     loss = [np.loadtxt(pth.join(r, f"model_{max(e)}_loss.csv")) for r, e in zip(runs, epoc)]
     models = [RocNet(pth.join(r, "model.pth")) for r in runs]
+    model_summaries = [[summary(m.encoder, verbose=0), summary(m.decoder.node_classifier, verbose=0), summary(m.decoder, verbose=0)] for m in models]
+    model_n_params = [[n[0].total_params, n[1].total_params, n[2].total_params - n[1].total_params] for n in model_summaries]
     run_descriptions = [utils.describe_run(r) for r in runs]
     title = [f"{d['collection']}" for d in run_descriptions]
-    plts = [plot_loss(l, t, r) for l, t, r in zip(loss, title, runs)]
+    plts = [plot_loss(l, t, r, p, run.logger) for l, t, r, p in zip(loss, title, runs, model_n_params)]
 
     plt.show()

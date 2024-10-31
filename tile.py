@@ -15,6 +15,12 @@ DEFAULT_CONFIG = {
     "train_fraction": 0.85,
     "clean": True,
     "save_intermediate": True,
+    # Transforms to apply to the .laz files before tiling, of the form [tx, ty, tz, rz] which is a 3D translation and a rotation (radians) about the vertical axis
+    # Note that the vertical axis is the one with the smallest extent
+    # Choose translation values values that are
+    # 1. not integer multiples of the voxel size
+    # 2. not integer multiples of the grid_dim
+    # 3. not integer multiples the leaf_dim you expect to use in the RocNet model (this is probably 32)
     "transforms": [[0.0, 0.0, 0.0, 0.0], [0.2, 0.2, 0.2, 0.0], [0.6, 0.4, 0.7, 0.0]],
 }
 

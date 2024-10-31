@@ -6,10 +6,12 @@ import os.path as pth
 import laspy as lp
 from rocnet.file import RocNetFile
 from rocnet.utils import load_file, save_file
+from rocnet.tiler import laz_to_points
 from os import makedirs
 import utils
 from test_tile import DEFAULT_CONFIG
 import open3d as o3d
+import numpy as np
 
 
 vox_sz = 1.0
@@ -39,19 +41,19 @@ if __name__ == "__main__":
         results_file = f"{file_out}.toml"
         if pth.exists(results_file):
             results = load_file(results_file, quiet=True)
-            pts_in = lp.read(file_in)
+            pts_in = np.asarray(laz_to_points(file_in, True, False).points)
             pts_out = codec.decode(file_out)
         else:
-            pts_in = lp.read(file_in)
+            pts_in = np.asarray(laz_to_points(file_in, True, False).points)
             try:
                 if not pth.exists(file_out):
-                    codec.encode(file_out, pts_in.xyz, vox_sz, bundle_decoder=False)
+                    codec.encode(file_out, pts_in, vox_sz, bundle_decoder=False)
                 pts_out = codec.decode(file_out)
             except Exception as e:
                 run.logger.error(f"Codec failed on file: {file_in}")
                 run.logger.error(e)
                 continue
-            results = utils.compare_pts(pts_in.xyz, pts_out, vox_sz)
+            results = utils.compare_pts(pts_in, pts_out, vox_sz)
             results.file_header = codec.examine(file_out)
             results.size_in = pth.getsize(file_in)
             results.size_out = pth.getsize(file_out)
@@ -61,7 +63,7 @@ if __name__ == "__main__":
         run.logger.info(f"{utils.describe_run(pth.split(codec._model.model_path)[0])['uid']:48} {results.compression_ratio:5.1f} {results.hamming_plus:10}+ {results.hamming_minus:10}- {results.chamfer:5.3f}")
         run.logger.info(f"{pth.basename(file_in):48} {'':5} {100*results.hamming_plus/results.n_pts_in:9.1f}%+ {100*results.hamming_minus/results.n_pts_in:9.3}%-")
         if args.visualise:
-            pc1 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_in.xyz))
+            pc1 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_in))
             pc2 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_out))
             utils.compact_view([pc1, pc2])
             o3d.visualization.draw_geometries([pc1, pc2])

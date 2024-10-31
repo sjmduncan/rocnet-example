@@ -1,6 +1,6 @@
 # RocNet Example
 
-An example of how to prepare a RocNet dataset, train a model, and evaluate the accuracy of the model
+This is a working example of how to go from multi-file LIDAR scan to training and evaluating a RocNet model.
 
 ![An example of RocNet compression](./media/rocnet-compression.png "asdf")
 
