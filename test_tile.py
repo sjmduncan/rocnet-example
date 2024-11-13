@@ -6,9 +6,9 @@ import os.path as pth
 import numpy as np
 import open3d as o3d
 import torch
-from rocnet.data import load_as_occupancy
-from rocnet.dataset import Dataset
+from rocnet.dataset import Dataset, load_points
 from rocnet.rocnet import RocNet
+from tqdm import tqdm
 
 import utils
 
@@ -36,14 +36,13 @@ if __name__ == "__main__":
     model_ids = [utils.describe_run(pth.split(r)[0]) for r in model_paths]
     datasets = [Dataset(d, models[0].cfg.grid_dim, train=False, max_samples=run.cfg.n_samples) for d in run.cfg.datasets]
 
-    original_gridsets = [[load_as_occupancy(d, models[0].cfg.grid_dim, scale=1.0 / dset.grid_div) for d in dset.files] for dset in datasets]
-    original_pcsets = [[o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(np.asarray(np.nonzero(grid.cpu() > 0.5)))) for grid in gridset] for gridset in original_gridsets]
+    original_pointsets = [[load_points(d, dset.metadata.grid_dim, 1.0 / dset.grid_div, dset.metadata.vox_size) for d in dset.files[:2]] for dset in datasets]
+    original_pcsets = [[o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(points)) for points in gridset] for gridset in original_pointsets]
 
     with torch.no_grad():
-        encoded_codesets = [[[m.encoder(sample) for m in models] for sample in originals] for originals in original_gridsets]
-        recovered_gridsets = [[[m.decoder(c) for m, c in zip(models, codes)] for codes in codeset] for codeset in encoded_codesets]
+        encoded_codesets = [[[m.compress_points(sample) for m in models] for sample in originals] for originals in original_pointsets]
+        recovered_ptsets = [[[m.uncompress_points(c) for m, c in zip(models, codes)] for codes in codeset] for codeset in encoded_codesets]
 
-    recovered_ptsets = [[[np.asarray(np.nonzero(g.cpu() > 0.5)) for g in grids] for grids in gridset] for gridset in recovered_gridsets]
     recovered_pcsets = [[[o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(p.astype("float"))) for p in pts] for pts in ptsets] for ptsets in recovered_ptsets]
 
     dataset = [[[o] + r for o, r in zip(oset, rset)] for oset, rset in zip(original_pcsets, recovered_pcsets)]

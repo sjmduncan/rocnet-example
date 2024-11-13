@@ -182,6 +182,7 @@ def describe_run(run):
 
 
 def compact_view(geometries, gdim=None):
+    [g.translate(-g.get_min_bound()) for g in geometries]
     bl = [g.get_min_bound() for g in geometries]
     if gdim is None:
         tr = [g.get_max_bound() for g in geometries]
@@ -279,7 +280,7 @@ def visualise_interactive(data, metrics, gdim, model_meta):
     sample_idx = 0
     look_sample_idx = 0
 
-    bounding_boxes = [[compact_view(s, gdim) for s in d] for d in data]
+    bounding_boxes = [[compact_view(s, None) for s in d] for d in data]
 
     def print_metric():
         print()
@@ -334,6 +335,13 @@ def visualise_interactive(data, metrics, gdim, model_meta):
     key_to_callback[ord("R")] = prev_dataset
     key_to_callback[ord("S")] = lookprev
     key_to_callback[ord("W")] = looknext
+    print("\n\nKeyboard Controls:")
+    print("N - Next tile")
+    print("B - Previous tile")
+    print("F - Next dataset")
+    print("R - Previous dataset")
+    print("T - LookAt next sample for current tile")
+    print("Y - LookAt prev sample for current tile")
     print_metric()
     geometries = [g for g in data[dataset_idx][sample_idx]] + [g for g in bounding_boxes[dataset_idx][sample_idx]]
     o3d.visualization.draw_geometries_with_key_callbacks(geometries, key_to_callback)
