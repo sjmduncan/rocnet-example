@@ -41,8 +41,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=True, max_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "train_files.csv"))
-    valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "valid_files.csv"))
+    dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=True, max_train_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "train_files.csv"))
+    valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_train_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "valid_files.csv"))
     trainer = Trainer(run.run_dir, run.cfg, dataset, valid_dataset)
     rocnet.utils.save_file(pth.join(run.run_dir, "train.toml"), run.cfg, False)
     trainer.train(on_epoch)
