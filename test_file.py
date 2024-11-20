@@ -6,12 +6,10 @@ import os.path as pth
 import laspy as lp
 from rocnet.file import RocNetFile
 from rocnet.utils import load_file, save_file
-from rocnet.tiler import laz_to_points
 from os import makedirs
 import utils
 from test_tile import DEFAULT_CONFIG
 import open3d as o3d
-import numpy as np
 
 
 vox_sz = 1.0
@@ -41,10 +39,10 @@ if __name__ == "__main__":
         results_file = f"{file_out}.toml"
         if pth.exists(results_file):
             results = load_file(results_file, quiet=True)
-            pts_in = np.asarray(laz_to_points(file_in, True, False).points)
+            pts_in = lp.read(file_in).xyz
             pts_out = codec.decode(file_out)
         else:
-            pts_in = np.asarray(laz_to_points(file_in, True, False).points)
+            pts_in = pts_in = lp.read(file_in).xyz
             try:
                 if not pth.exists(file_out):
                     codec.encode(file_out, pts_in, vox_sz, bundle_decoder=False)

@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     stopping = False
 
-    def on_epoch(current_epoch, max_epochs, train_loss, valid_loss, do_snapshot):
+    def on_epoch(current_epoch, max_epochs, train_loss, valid_loss):
         return stopping
 
     def handle_signal(sig, frame):
