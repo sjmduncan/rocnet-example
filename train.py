@@ -9,18 +9,37 @@ from rocnet.dataset import Dataset
 from rocnet.rocnet import DEFAULT_CONFIG as MODEL_DEFAULTS
 from rocnet.trainer import DEFAULT_CONFIG as TRAIN_DEFAULTS
 from rocnet.trainer import Trainer, check_training_cfg
+import torch
+
 
 import utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="train.py", description="Start rocnet training")
     parser.add_argument("folder", help="Output <folder> which will contain train.toml and one or more train_<TIMESTAMP>")
+    parser.add_argument("--resume-from", help="Folder from a previous partial training run with at least one set of .pth files", default=None)
 
     args = parser.parse_args()
 
     TRAIN_DEFAULTS["model"] = MODEL_DEFAULTS
     run = utils.Run(args.folder, "train", "train", True, TRAIN_DEFAULTS)
     check_training_cfg(run.cfg)
+
+    if args.resume_from is not None:
+        dt = utils.dir_type(args.resume_from)
+        if dt == "training-run":
+            resume_path = args.resume_from
+        elif dt == "run-collection":
+            runs = utils.search_runs(args.resume_from)
+            runs.sort()
+            resume_path = runs[-1]
+        else:
+            raise FileNotFoundError(f"Folder does not contain a non-empty training run: {args.resume_from}")
+
+        run_meta = torch.load(pth.join(resume_path, "model.pth"))["metadata"]
+        min_epoch = run_meta["epoch"] + 1
+        run.logger.info(f"Resuming: {resume_path}")
+        run.logger.info(f"        : epoch {min_epoch}")
 
     try:
         run.git_snapshot()
@@ -50,5 +69,8 @@ if __name__ == "__main__":
 
     valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_samples=max_test_samples, file_list=pth.join(run.dir, "valid_files.csv"))
     trainer = Trainer(run.run_dir, run.cfg, dataset, valid_dataset)
+    if args.resume_from is not None:
+        trainer.load_snapshot(pth.join(resume_path, f"model_{min_epoch}"))
+        trainer.start_epoch = min_epoch
     rocnet.utils.save_file(pth.join(run.run_dir, "train.toml"), run.cfg, False)
     trainer.train(on_epoch)

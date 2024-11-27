@@ -46,11 +46,11 @@ def chamfer(p1, p2):
 def hamming(v1, v2, two_sided=True):
     vi2 = o3d.utility.Vector3dVector([v2.get_voxel_center_coordinate(v.grid_index) for v in v2.get_voxels()])
     v2_in_v1 = np.array(v1.check_if_included(vi2))
-    result = np.sum(v2_in_v1 == False)
+    result = np.sum(v2_in_v1 == 0)
     if two_sided:
         vi1 = o3d.utility.Vector3dVector([v1.get_voxel_center_coordinate(v.grid_index) for v in v1.get_voxels()])
         v1_in_v2 = np.array(v2.check_if_included(vi1))
-        result += np.sum(v1_in_v2 == False)
+        result += np.sum(v1_in_v2 == 0)
 
     return result
 
@@ -158,7 +158,7 @@ def search_runs(parent, run_type="notempty"):
         snapshots = glob.glob(pth.join(parent, "*.pth"))
         n_models = len(snapshots)
         if n_models > 0 and "model.pth" not in [pth.basename(s) for s in snapshots]:
-            print(f"Has snapshots but no final model.pth: {parent}")
+            logger.warning(f"Has snapshots but no final model.pth: {parent}")
         elif n_models == 0 and run_type == "empty":
             return [parent]
         elif n_models > 0 and run_type == "notempty":
@@ -213,7 +213,7 @@ def compact_view(geometries, gdim=None):
         tr = [g.get_max_bound() for g in geometries]
     else:
         tr = [b + np.array([gdim, gdim, gdim]) for b in bl]
-    sizes = [r - l for l, r in zip(bl, tr)]
+    sizes = [r - b for b, r in zip(bl, tr)]
     x_offsets = [s[0] * 1.1 for s in sizes]
     x_offsets = np.cumsum(x_offsets)
     np.insert(x_offsets, 0, 0)
