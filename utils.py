@@ -16,6 +16,8 @@ import open3d as o3d
 from rocnet.utils import ensure_file, load_file
 import json
 
+logger = logging.getLogger(__name__)
+
 
 def hausdorff(p1, p2, two_sided=True):
     """Compute the Hausdorff distance between p1 and p2 (or from p1 to p2 if two_sided=False)"""
@@ -60,33 +62,54 @@ def vox_points(pts: o3d.geometry.PointCloud, vox_size: float):
     return o3d.geometry.PointCloud(o3d.utility.Vector3dVector(vox_pts))
 
 
-def compare_pts(ref: np.array, cmp: np.array, vox_size: float):
-    """Compute hasudorff, chamfer, and point-count difference between ref cloud and cmp cloud
+def compare_pts(ref: np.array, cmp: np.array, vox_size: float) -> dict:
+    """Computes the hausdorff (in either direction), and chamfer distances between the input cloud, also the hausdorff and hamming distances (both in either direction) after quantising with both to vox_size
 
     ref: array of raw points, probably straight from a LIDAR or other point cloud source
     cmp: array of points retrieved from a RocNet code
     vox_size: size of the voxels used to quantise the point cloud for RocNet
+
+    returns: dict of the metrics, with keys for quantised versions prefixed with q_
     """
 
+    logger.info("compare_pts: Create point clouds")
     cmp_pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(cmp))
     ref_pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(ref))
+    logger.info("compare_pts: Create voxel grids")
     cmp_vox = o3d.geometry.VoxelGrid.create_from_point_cloud(cmp_pc, vox_size)
     ref_vox = o3d.geometry.VoxelGrid.create_from_point_cloud(ref_pc, vox_size)
     ref_pc_ds = vox_points(ref_pc, vox_size)
 
+    logger.info("compare_pts: hausdorff")
+    hausdorff_plus = hausdorff(cmp_pc, ref_pc, False)
+    hausdorff_minus = hausdorff(ref_pc, cmp_pc, False)
+    logger.info("compare_pts: chamfer")
+    chamfer_dist = chamfer(ref_pc, cmp_pc)
+    n_pts_in = len(ref)
+    n_pts_out = len(cmp)
+    logger.info("compare_pts: quantised hausdorff")
+    q_hausdorff_plus = hausdorff(cmp_pc, ref_pc_ds, False)
+    q_hausdorff_minus = hausdorff(ref_pc_ds, cmp_pc, False)
+    logger.info("compare_pts: quantised chamfer")
+    q_chamfer = chamfer(ref_pc_ds, cmp_pc)
+    q_n_pts = len(ref_pc_ds.points)
+    logger.info("compare_pts: hamming")
+    hamming_minus = hamming(cmp_vox, ref_vox, False)
+    hamming_plus = hamming(ref_vox, cmp_vox, False)
+
     return ed(
         {
-            "hausdorff_plus": hausdorff(cmp_pc, ref_pc, False),
-            "hausdorff_minus": hausdorff(ref_pc, cmp_pc, False),
-            "chamfer": chamfer(ref_pc, cmp_pc),
-            "n_pts_in": len(ref),
-            "n_pts_out": len(cmp),
-            "q_hausdorff_plus": hausdorff(cmp_pc, ref_pc_ds, False),
-            "q_hausdorff_minus": hausdorff(ref_pc_ds, cmp_pc, False),
-            "q_chamfer": chamfer(ref_pc_ds, cmp_pc),
-            "q_n_pts": len(ref_pc_ds.points),
-            "hamming_minus": hamming(cmp_vox, ref_vox, False),
-            "hamming_plus": hamming(ref_vox, cmp_vox, False),
+            "hausdorff_plus": hausdorff_plus,
+            "hausdorff_minus": hausdorff_minus,
+            "chamfer": chamfer_dist,
+            "n_pts_in": n_pts_in,
+            "n_pts_out": n_pts_out,
+            "q_hausdorff_plus": q_hausdorff_plus,
+            "q_hausdorff_minus": q_hausdorff_minus,
+            "q_chamfer": q_chamfer,
+            "q_n_pts": q_n_pts,
+            "hamming_minus": hamming_minus,
+            "hamming_plus": hamming_plus,
         }
     )
 
@@ -150,7 +173,9 @@ def search_runs(parent, run_type="notempty"):
         runs = [r for r in runs if r is not None]
         return [r for rr in runs for r in rr]
     elif dt == "run-collection-collection":
-        return [rc for rcc in [search_runs(p, run_type) for p in glob.glob(pth.join(parent, "*")) if pth.isdir(p)] for rc in rcc]
+        runs_tmp = [search_runs(p, run_type) for p in glob.glob(pth.join(parent, "*")) if pth.isdir(p)]
+        runs_tmp = [r for r in runs_tmp if r is not None]
+        return [rc for rcc in runs_tmp for rc in rcc]
 
 
 def run_epochs(run_dir):
@@ -280,7 +305,7 @@ def visualise_interactive(data, metrics, gdim, model_meta):
     sample_idx = 0
     look_sample_idx = 0
 
-    bounding_boxes = [[compact_view(s, None) for s in d] for d in data]
+    bounding_boxes = [[compact_view(s, gdim) for s in d] for d in data]
 
     def print_metric():
         print()
@@ -289,9 +314,14 @@ def visualise_interactive(data, metrics, gdim, model_meta):
             print(f"{meta.collection:>24} {meta.time} {metric[0]:6.1f} {metric[1]:6.1f} {metric[2]:5.3f}")
 
     def update(vis):
+        view = json.loads(vis.get_view_status())["trajectory"][0]
         vis.clear_geometries()
-        [vis.add_geometry(g, False) for g in data[dataset_idx][sample_idx]]
-        [vis.add_geometry(g, False) for g in bounding_boxes[dataset_idx][sample_idx]]
+        [vis.add_geometry(g, True) for g in data[dataset_idx][sample_idx]]
+        [vis.add_geometry(g, True) for g in bounding_boxes[dataset_idx][sample_idx]]
+        vis.get_view_control().set_front(view["front"])
+        vis.get_view_control().set_lookat(view["lookat"])
+        vis.get_view_control().set_up(view["up"])
+        vis.get_view_control().set_zoom(view["zoom"])
         print_metric()
 
     def next_dataset(vis):
@@ -311,16 +341,18 @@ def visualise_interactive(data, metrics, gdim, model_meta):
 
     def lookat(vis):
         ctr = vis.get_view_control()
-        ctr.set_lookat(data[dataset_idx][look_sample_idx][0].get_center())
+        ctr.set_lookat(bounding_boxes[dataset_idx][0][look_sample_idx].get_center())
 
     def lookprev(vis):
         nonlocal look_sample_idx
-        look_sample_idx = (look_sample_idx - 1 + len(data[dataset_idx])) % len(data[dataset_idx])
+        n = len(data[dataset_idx][0])
+        look_sample_idx = (look_sample_idx - 1 + n) % n
         lookat(vis)
 
     def looknext(vis):
         nonlocal look_sample_idx
-        look_sample_idx = (look_sample_idx + 1) % len(data[dataset_idx])
+        n = len(data[dataset_idx][0])
+        look_sample_idx = (look_sample_idx + 1) % n
         lookat(vis)
 
     def prev_sample(vis):
@@ -340,8 +372,8 @@ def visualise_interactive(data, metrics, gdim, model_meta):
     print("B - Previous tile")
     print("F - Next dataset")
     print("R - Previous dataset")
-    print("T - LookAt next sample for current tile")
-    print("Y - LookAt prev sample for current tile")
+    print("W - LookAt next sample for current tile")
+    print("S - LookAt prev sample for current tile")
     print_metric()
     geometries = [g for g in data[dataset_idx][sample_idx]] + [g for g in bounding_boxes[dataset_idx][sample_idx]]
     o3d.visualization.draw_geometries_with_key_callbacks(geometries, key_to_callback)

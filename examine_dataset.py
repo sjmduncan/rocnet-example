@@ -9,14 +9,15 @@ import utils
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="test.py", description="Evaluate the performance of one or more RocNet models")
     parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
-    parser.add_argument("--grid-dim", help="grid dim", default=64)
+    parser.add_argument("--grid-dim", help="grid dim", default=128)
     parser.add_argument("--leaf-dim", help="leaf dim", default=32)
-    parser.add_argument("--max-samples", help="leaf dim", default=-1)
+    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=-1)
+    parser.add_argument("--train", help="Examine the training dataset", default=False)
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "train", "examine-dataset", False)
 
-    dataset = Dataset(run.cfg.dataset_path, args.grid_dim, False, max_samples=args.max_samples)
+    dataset = Dataset(run.cfg.dataset_path, args.grid_dim, args.train, max_samples=args.max_samples)
     dataset.read_files(args.grid_dim, args.leaf_dim)
 
     ltc = [t.leaf_type_count() for t in dataset]

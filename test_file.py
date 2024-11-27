@@ -10,9 +10,10 @@ from os import makedirs
 import utils
 from test_tile import DEFAULT_CONFIG
 import open3d as o3d
+import torch
 
 
-vox_sz = 1.0
+vox_sz = 0.5  # TODO: Get this from the apropriate config file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="test_file.py", description="Evaluate and visualise the per-file performance and lossiness of one or more models")
@@ -40,13 +41,15 @@ if __name__ == "__main__":
         if pth.exists(results_file):
             results = load_file(results_file, quiet=True)
             pts_in = lp.read(file_in).xyz
-            pts_out = codec.decode(file_out)
+            with torch.no_grad():
+                pts_out = codec.decode(file_out)
         else:
             pts_in = pts_in = lp.read(file_in).xyz
             try:
-                if not pth.exists(file_out):
-                    codec.encode(file_out, pts_in, vox_sz, bundle_decoder=False)
-                pts_out = codec.decode(file_out)
+                with torch.no_grad():
+                    if not pth.exists(file_out):
+                        codec.encode(file_out, pts_in, vox_sz, bundle_decoder=False)
+                    pts_out = codec.decode(file_out)
             except Exception as e:
                 run.logger.error(f"Codec failed on file: {file_in}")
                 run.logger.error(e)

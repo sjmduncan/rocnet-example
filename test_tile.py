@@ -32,7 +32,7 @@ if __name__ == "__main__":
         [run.logger.error(cp, m.cfg.grid_dim) for (cp, m) in zip(run.cfg.models, models)]
         raise ValueError("Model grid_dims must all be the same")
     model_ids = [utils.describe_run(pth.split(r)[0]) for r in model_paths]
-    datasets = [Dataset(d, models[0].cfg.grid_dim, train=False, max_train_samples=run.cfg.n_samples) for d in run.cfg.datasets]
+    datasets = [Dataset(d, models[0].cfg.grid_dim, train=False, max_samples=run.cfg.n_samples) for d in run.cfg.datasets]
 
     original_pointsets = [[load_points(d, dset.metadata.grid_dim, 1.0 / dset.grid_div, dset.metadata.vox_size) for d in dset.files] for dset in datasets]
     original_pcsets = [[o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(points[:, :3])) for points in gridset] for gridset in original_pointsets]
