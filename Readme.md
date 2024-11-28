@@ -14,7 +14,7 @@ Some prerequisites need specific versions, limited by Open3D and by the python v
 - `numpy==1.26.4`: Required for compatibility with Open3d 0.18 (you'll get some fun silent crashes if you use a newer version with Open3D 0.18)
 
 
-### Quickstart
+## Quickstart
 
 1. Install python 3.11 ([here](https://www.python.org/downloads/))
 2. Install CUDA 11.8 ([here](https://developer.nvidia.com/cuda-toolkit-archive))
@@ -47,26 +47,46 @@ python train.py ./data/weights
 
 ## General Usage
 
-Usage pattern for any script goes like this:
+Usage pattern for any script goes like this (using `train.py` as an example):
 
-1. run `python SCRIPT.py PATH`. This will create a `.toml` config file in `PATH`, prompt you to edit the file (e.g. to set paths and variables), and then exit.
-2. edit `PATH/*.toml` to set the approprate paths and values
-3. re-run `python SCRIPT.py PATH` to actually run the script
+1. run `python train.py $TGT_WORK_DIR`.
+2. If `$TGT_WORK_DIR/train.toml` exists then training run and model config is loaded from that file and a training run is started.
+3. If `$TGT_WORK_DIR/train.toml` does not exist it will be created and populated with default values, the script will then exist and prompt you to modify the defaul values and re-run step 1.
 
-The main .toml file names are `test.toml` and `train.toml`, but you can have others (e.g. `tiler.toml` for creating tiled datasets).
+### Config File Names and Defaults
 
-General usage instructions can be used by invoking a script with `-h` or `--help`, and the process of training a model goes a bit like this:
+The above training example is the same for the other scripts, however they load different config files depending on what they do
+
+- `examine_dataset.py` expects `train.toml`
+- `tile.py` expects `tile.toml` 
+- `test_file.py`, `test_tile.py` and `examine_training_run.py` expect `test.toml`
+
+Default values for config are described in the rocnet package, except for `tile.toml` which is defined in `tile.py`.
+
+### Usage Documentation
+
+Class, function, and module documentation is in the docstrings.
+
+All scripts accept a `--help` argument which will provide brief invocation instructions.
+
+### Starting from Scratch
+
+These instructions will get you something like the example data, but perhaps with a larger input dataset for training and tiling.
 
 1. Acquire LIDAR data (e.g. from [opentopography](https://opentopography.org/))
-   1. `data/laz` from the Quickstart is an example
-2. Run `python tile.py PATH_OUT` where `PATH_OUT` is a directory where the tile dataset is created. If `PATH_OUT/tiler.toml` does not exist, the script will create it and prompt you to edit it.
+2. Run `python tile.py $TGT_OUT_DIR` to create a dataset in `$TGT_OUT_DIR`, the script will exit, and you should edit `$TGT_OUT_DIR/tile.toml`:
    1. `input_dir` should point to the folder containing the laz files acquired in step 1 (e.g. `./data/laz/`)
-   2. `grid_dim` and `vox_size` should be chosen so that most of the scan fits within the height of `grid_dim` and `vox_size` should be chosen so that continuous surfaces produce continuous 'shells of occupied voxels
+   2. `grid_dim` and `vox_size` should be chosen so that most of the scan fits within the height of `grid_dim` and `vox_size` should be chosen so that continuous surfaces produce continuous 'shells' of occupied voxels. `grid_dim` must be a power of two.
    3. Ensure that the relevant transforms are added (especially for smaller `.laz` scans)
-   4. `clean` to ensure that the pointclouds are cleaned before tiling
-3. Create a dataset of 'tiles' which can be efficiently loaded and used to train a RocNet model
-4. Run `python train.py PATH`, which will create `PATH` and `PATH/train.toml` with default values, the script will then exit and prompt you to edit the newly created train.toml, which at a minimum needs
+   4. Set `clean: true` if you need to clean outliers and noisy points from the input data (e.g. if you didn't use the 'exclude noise' option when)
+   See the note about `transforms` in `tile.py` an decide if you need to add any
+3. Re-run `python tile.py $TGT_OUT_DIR` to create the tiled dataset (this will probably take some time.)
+4. Run `python train.py $TGT_WORK_DIR`, edit `train.toml` so that:
    1. `dataset_path` to point to the dataset folder 
-   2. `grid_dim` should be a power of two to 
-5. Re-run `python train.py PATH` to start a training run
-6. After it's finished, use the `test_*` and `examine_*` scripts to evaluate the result.
+   2. `grid_dim` should be a power of two, and less than or equal to the dataset `grid_dim`
+   3. You may need to change `max_samples`, and/or `batch_size` depending on your hardware, datset size, `grid_dim`, and model config (in the `[model]` section of the config file)
+5. Re-run `python train.py $TGT_WORK_DIR` to start a training run, it'll create a `train_<TIMESTAMP>` folder which will contain a bunch of stuff, including the log file and snapshots of the model weights and model loss values during training.
+   1. If you hit out-of-memory errors check the log file to see how much is being used, and modify `batch_size`, `max_samples`, or some of the model parameters to reduce memory consumption.
+6. After training is finished, you can use `python examine_training_run.py $TGT_WORK_DIR` (repeating the usage pattern of editing `test.toml`) to see the loss graph, or
+   - `python test_tile.py $TGT_WORK_DIR` to visualise individual original and encoded/recovered tiles
+   - `python test_file.py $TGT_WORK_DIR --visualise` to compute some lossiness and compression ratio metrics, and also to visualise the original file and the encoded/recovered file (with the file(s) specified in `test.toml`)

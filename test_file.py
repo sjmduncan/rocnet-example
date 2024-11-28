@@ -39,21 +39,26 @@ if __name__ == "__main__":
     for codec, file_in, file_out in files_all:
         results_file = f"{file_out}.toml"
         if pth.exists(results_file):
+            run.logger.info(f"Loading results for {file_out}")
             results = load_file(results_file, quiet=True)
             pts_in = lp.read(file_in).xyz
             with torch.no_grad():
                 pts_out = codec.decode(file_out)
         else:
+            run.logger.info(f"Processing {file_out}")
             pts_in = pts_in = lp.read(file_in).xyz
             try:
                 with torch.no_grad():
                     if not pth.exists(file_out):
+                        run.logger.info("Encoding")
                         codec.encode(file_out, pts_in, vox_sz, bundle_decoder=False)
+                    run.logger.info("Decoding")
                     pts_out = codec.decode(file_out)
             except Exception as e:
                 run.logger.error(f"Codec failed on file: {file_in}")
                 run.logger.error(e)
                 continue
+            run.logger.info("Computing metrics")
             results = utils.compare_pts(pts_in, pts_out, vox_sz)
             results.file_header = codec.examine(file_out)
             results.size_in = pth.getsize(file_in)
@@ -64,9 +69,10 @@ if __name__ == "__main__":
         run.logger.info(f"{utils.describe_run(pth.split(codec._model.model_path)[0])['uid']:48} {results.compression_ratio:5.1f} {results.hamming_plus:10}+ {results.hamming_minus:10}- {results.chamfer:5.3f}")
         run.logger.info(f"{pth.basename(file_in):48} {'':5} {100*results.hamming_plus/results.n_pts_in:9.1f}%+ {100*results.hamming_minus/results.n_pts_in:9.3}%-")
         if args.visualise:
+            run.logger.info("Visualising result")
             pc1 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_in))
             pc2 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_out))
             utils.compact_view([pc1, pc2])
             o3d.visualization.draw_geometries([pc1, pc2])
 
-    print("done")
+    run.logger.info("Done!")
