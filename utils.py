@@ -16,6 +16,8 @@ import open3d as o3d
 from rocnet.utils import ensure_file, load_file
 import json
 
+import torch
+
 logger = logging.getLogger(__name__)
 
 
@@ -391,13 +393,15 @@ class Run:
       dir: directory containing the config file, and the output
     """
 
-    def __init__(self, out_dir: str, cfg_type: str, run_type: str, is_collection: bool = False, default_config: dict = None):
+    def __init__(self, out_dir: str, cfg_type: str, run_type: str, is_collection: bool = False, default_config: dict = None, seed: int = None):
         """Start a new run with {out_dir} as the working dir, {out_dir}/{cfg_type}.toml as the config, and {out_dir}/{run_type}_ as the log and/or run_dir prefix
 
         out_dir: directory which contains the config file and will contain the output
         cfg_type: basename of the config file
         run_type: prefix of basename of log file and if is_collection==True also self.run_dir
         is_collection: self.run_dir is {out_dir}/{run_type}_{START_TIME} (use this for training, benchmarking, or things which produce an annoying number of output files)
+        default_config: dict with default config values, should contain the whole structure of the config file (and can have extra values)
+        seed: int to use for torch.seed, if this is not none then will also invoke torch.use_deterministic_algorithms()
         """
 
         self.TIME_FMT = "%Y-%m-%d_%H.%M.%S"
@@ -428,6 +432,10 @@ class Run:
             logging.basicConfig(filename=pth.join(self.run_dir, f"{self.run_type}.log"), level=logging.INFO)
         else:
             logging.basicConfig(filename=pth.join(self.run_dir, f"{self.run_type}_{self.START_TIME}.log"), level=logging.INFO)
+        if seed is not None:
+            self.logger.info(f"Training with seed: {seed}")
+            torch.manual_seed(seed)
+            # FIXME can't have this with CUDA torch.use_deterministic_algorithms(True)
 
     def git_snapshot(self):
         # If git exists and this is being run in a repository, then a file with the name

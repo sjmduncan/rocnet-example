@@ -18,11 +18,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="train.py", description="Start rocnet training")
     parser.add_argument("folder", help="Output <folder> which will contain train.toml and one or more train_<TIMESTAMP>")
     parser.add_argument("--resume-from", help="Folder from a previous partial training run with at least one set of .pth files", default=None)
+    parser.add_argument("--seed", help="Integer for torch.manual_seed, will also invoke torch.use_deterministic_algorithms()", default=None)
 
     args = parser.parse_args()
 
     TRAIN_DEFAULTS["model"] = MODEL_DEFAULTS
-    run = utils.Run(args.folder, "train", "train", True, TRAIN_DEFAULTS)
+    run = utils.Run(args.folder, "train", "train", True, TRAIN_DEFAULTS, args.seed)
     check_training_cfg(run.cfg)
 
     if args.resume_from is not None:
