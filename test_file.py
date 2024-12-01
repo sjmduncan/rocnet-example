@@ -41,11 +41,14 @@ if __name__ == "__main__":
         if pth.exists(results_file):
             run.logger.info(f"Loading results for {file_out}")
             results = load_file(results_file, quiet=True)
+            run.logger.info(f"Loading points from {file_in}")
             pts_in = lp.read(file_in).xyz
             with torch.no_grad():
+                run.logger.info("Decoding")
                 pts_out = codec.decode(file_out)
         else:
             run.logger.info(f"Processing {file_out}")
+            run.logger.info(f"Loading points from {file_in}")
             pts_in = pts_in = lp.read(file_in).xyz
             try:
                 with torch.no_grad():

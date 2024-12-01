@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="test_tile.py", description="Evaluate and visualise the per-tile performance and lossiness of one or more models")
     parser.add_argument("folder", help="Folder containing either train.toml or a test.toml file which points to multiple training runs to process")
+    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true", default=True)
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "test", "test", False, DEFAULT_CONFIG)

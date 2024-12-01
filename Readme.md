@@ -1,15 +1,15 @@
 # RocNet Example
 
-This is a working example of how to go from multi-file LIDAR scan to training and evaluating a RocNet model.
+This is a working example for training and evaluating a RocNet model from a LiDAR dataset.
 
 ![An example of RocNet compression](./media/rocnet-compression.png "asdf")
 
-## Setup
+## Dependencies
 
 Some prerequisites need specific versions, limited by Open3D and by the python versions supported by the cluster.:
 
 - **Python 3.11**: Required by Open3D 0.18  
-- **Cuda 11.8**: Only required if you want to use the 80GB A100 nodes on the Otago Uni cluster (otherwise use whatever CUDA you want)
+- CUDA (this example, and also `setup.[bat,sh]` assumes CUDA 11.8)
 - `open3d==0.18.0`: Was the stable version during RocNet development
 - `numpy==1.26.4`: Required for compatibility with Open3d 0.18 (you'll get some fun silent crashes if you use a newer version with Open3D 0.18)
 
@@ -49,9 +49,10 @@ python train.py ./data/weights
 
 Usage pattern for any script goes like this (using `train.py` as an example):
 
-1. run `python train.py $TGT_WORK_DIR`.
-2. If `$TGT_WORK_DIR/train.toml` exists then training run and model config is loaded from that file and a training run is started.
-3. If `$TGT_WORK_DIR/train.toml` does not exist it will be created and populated with default values, the script will then exist and prompt you to modify the defaul values and re-run step 1.
+1. Activate the python environment
+2. run `python train.py $TGT_WORK_DIR`.
+3. If `$TGT_WORK_DIR/train.toml` exists then training run and model config is loaded from that file and a training run is started.
+4. If `$TGT_WORK_DIR/train.toml` does not exist it will be created and populated with default values, the script will then exist and prompt you to modify the defaul values and re-run step 1.
 
 ### Config File Names and Defaults
 
@@ -90,3 +91,19 @@ These instructions will get you something like the example data, but perhaps wit
 6. After training is finished, you can use `python examine_training_run.py $TGT_WORK_DIR` (repeating the usage pattern of editing `test.toml`) to see the loss graph, or
    - `python test_tile.py $TGT_WORK_DIR` to visualise individual original and encoded/recovered tiles
    - `python test_file.py $TGT_WORK_DIR --visualise` to compute some lossiness and compression ratio metrics, and also to visualise the original file and the encoded/recovered file (with the file(s) specified in `test.toml`)
+
+
+## Train with HPC/SLURM
+
+
+Set up the necessary software, pyenv, and get the dataset:
+
+1. Get this repository
+2. Check which versions of python and CUDA are installed, check that the pytorch `index_url` in `setup.sh` is correct for your version of CUDA
+3. Run setup.sh to get all the prerequisites
+4. Transfer a dataset to the cluster (`$DATASET_DIR`)
+
+To create a rocnet `$TGT_WORK_DIR`, follow the General Usage instructions and edit the resulting `train.toml`.
+Copy `slurm-template.sh` there, rename it to `slurm.sh` and fill in all placeholders denoted by {{double-curly-braces}}.
+To start a training run `cd $TGT_WORK_DIR` and then `sbatch slurm.sh` which will produce a slurm log file at `slurm-{job-num}.out` in `$TGT_WORK_DIR`. 
+Use `squeue --me` to see the status of the job, how long it's been running, etc.

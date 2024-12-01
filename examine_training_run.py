@@ -43,6 +43,7 @@ def plot_loss(loss, title, run, n_params, logger):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="test.py", description="Evaluate the performance of one or more RocNet models")
     parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
+    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true", default=True)
     args = parser.parse_args()
     run = utils.Run(args.folder, "test", "examine", False, DEFAULT_CONFIG)
     runs = utils.search_runs(run.cfg.models)
@@ -54,5 +55,5 @@ if __name__ == "__main__":
     run_descriptions = [utils.describe_run(r) for r in runs]
     title = [f"{d['collection']}" for d in run_descriptions]
     plts = [plot_loss(l, t, r, p, run.logger) for l, t, r, p in zip(loss, title, runs, model_n_params)]
-
-    plt.show()
+    if args.visualise:
+        plt.show()
