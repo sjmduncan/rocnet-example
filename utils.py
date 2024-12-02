@@ -2,23 +2,25 @@
 
 import argparse
 import glob
+import json
 import logging
 import os.path as pth
 import subprocess
 import sys
 from datetime import datetime
-from os import makedirs
-
-from easydict import EasyDict as ed
+from os import makedirs, remove, rmdir
+from shutil import copyfile
 
 import numpy as np
 import open3d as o3d
-from rocnet.utils import ensure_file, load_file
-import json
-
 import torch
+from easydict import EasyDict as ed
+from rocnet.utils import ensure_file, load_file
 
 logger = logging.getLogger(__name__)
+log_handler_stdout = logging.StreamHandler(sys.stdout)
+logger.addHandler(log_handler_stdout)
+logger.setLevel(level=logging.INFO)
 
 
 def hausdorff(p1, p2, two_sided=True):
@@ -34,7 +36,7 @@ def hausdorff(p1, p2, two_sided=True):
 
 
 def chamfer(p1, p2):
-    "Compute the chamfer distance between p1 and p2"
+    """Compute the chamfer distance between p1 and p2"""
     try:
         nn_dist1 = np.asarray(p1.compute_point_cloud_distance(p2))
         nn_dist2 = np.asarray(p2.compute_point_cloud_distance(p1))
@@ -46,6 +48,7 @@ def chamfer(p1, p2):
 
 
 def hamming(v1, v2, two_sided=True):
+    """Compute the hamming distance between two voxel grids"""
     vi2 = o3d.utility.Vector3dVector([v2.get_voxel_center_coordinate(v.grid_index) for v in v2.get_voxels()])
     v2_in_v1 = np.array(v1.check_if_included(vi2))
     result = np.sum(v2_in_v1 == 0)
@@ -132,7 +135,7 @@ def dir_type(dir):
     dir_dirnames = [pth.split(d)[1] for d in dir_dirs]
     dir_filenames = [pth.split(d)[1] for d in dir_files]
 
-    if "train.toml" in dir_filenames and "train.log" in dir_filenames and len(dir_dirnames) == 0:
+    if "train.log" in dir_filenames and len(dir_dirnames) == 0:
         return "training-run"
 
     if "train.toml" in dir_filenames and "train.log" not in dir_filenames:
@@ -146,11 +149,14 @@ def dir_type(dir):
 
 def search_runs(parent, run_type="notempty"):
     """Recursive search for all trainig runs contained in parent. Returns a flat list of the full paths to all training runs"""
+
     if run_type not in ["empty", "notempty", "all"]:
         raise ValueError(f"run_type should be one of ['empty', 'notempty', 'all']. Current value={run_type}")
 
     if isinstance(parent, list):
         return [r for rr in [search_runs(p, run_type) for p in parent] for r in rr]
+
+    assert pth.exists(parent), f"Path does not exist: {parent}"
 
     dt = dir_type(parent)
     if dt == "training-run":
@@ -161,6 +167,7 @@ def search_runs(parent, run_type="notempty"):
         n_models = len(snapshots)
         if n_models > 0 and "model.pth" not in [pth.basename(s) for s in snapshots]:
             logger.warning(f"Has snapshots but no final model.pth: {parent}")
+            return [parent]
         elif n_models == 0 and run_type == "empty":
             return [parent]
         elif n_models > 0 and run_type == "notempty":
@@ -180,11 +187,36 @@ def search_runs(parent, run_type="notempty"):
         return [rc for rcc in runs_tmp for rc in rcc]
 
 
+def parse_training_run(run_dir):
+    """List all info about a training run"""
+    has_final_model = pth.exists(pth.join(run_dir, "model.pth"))
+    snapshots = glob.glob(pth.join(run_dir, "model_*_training.pth"))
+    snapshots.sort()
+    snapshot_epochs = [int(pth.split(p)[1].split("_")[1]) for p in snapshots]
+    loss = np.loadtxt(snapshots[-1][:-12] + "loss.csv")
+    snapshot_dicts = [torch.load(f[:-13] + ".pth") for f in snapshots]
+    snapshot_meta = [d["metadata"] for d in snapshot_dicts]
+    snapshot_losses = [d["loss"][-1] for d in snapshot_meta]
+
+    return {
+        "has_final_model": has_final_model,
+        "final_model": pth.join(run_dir, "model.pth"),
+        "optimal_snapshot_idx": np.argmin(snapshot_losses),
+        "snapshots": list(zip(snapshots, snapshot_epochs, snapshot_losses)),
+        "loss": loss,
+    }
+
+
 def run_epochs(run_dir):
     """find all snapshot epochs for model_*_training.pth files, return list in ascending order"""
     epochs = [int(pth.split(p)[1].split("_")[1]) for p in glob.glob(pth.join(run_dir, "model_*_training.pth"))]
     epochs.sort()
     return epochs
+
+
+def run_optimal_epoch(run_dir):
+    """Return the epoch with the optimal validation score"""
+    re = run_epochs(run_dir)
 
 
 def model_id(mc: dict):
@@ -407,9 +439,7 @@ class Run:
         self.TIME_FMT = "%Y-%m-%d_%H.%M.%S"
         self.START_TIME = datetime.now().strftime(self.TIME_FMT)
 
-        self.logger = logging.getLogger(__name__)
-        self.log_handler_stdout = logging.StreamHandler(sys.stdout)
-        self.logger.addHandler(self.log_handler_stdout)
+        self.logger = logger
 
         self.run_type = run_type
         self.cfg_path = pth.join(out_dir, f"{cfg_type}.toml")
@@ -450,9 +480,66 @@ class Run:
             raise RuntimeError(f"Error running git: {GIT_HASH.stderr}")
 
 
+def clean_empty(folder: str, noop: bool):
+    """"""
+    runs = search_runs(folder, "empty")
+    [[logger.info(f"Deleting {f}") for f in glob.glob(pth.join(d, "*"))] for d in runs]
+    [logger.info(f"Deleting {f}") for f in runs]
+    if noop:
+        logger.info("Invoked with '--noop'; No files actually deleted")
+    else:
+        [[remove(f) for f in glob.glob(pth.join(d, "*"))] for d in runs]
+        [rmdir(f) for f in runs]
+    logger.info("done")
+
+
+def clean_intermediate(folder: str, noop: bool):
+    """"""
+    logger.info(f"Removing intermediate snapshots from {folder}")
+    runs = search_runs(folder, "notempty")
+    runs = search_runs(folder, "notempty")
+    runs_info = [parse_training_run(r) for r in runs]
+    for r in runs_info:
+        [logger.info(f"Keeping  {fn}") for fn in glob.glob(r["snapshots"][r["optimal_snapshot_idx"]][0][:-13] + "*")]
+        [[logger.info(f"Deleting {fn}") for fn in glob.glob(s[0][:-13] + "*")] for idx, s in enumerate(r["snapshots"]) if idx != r["optimal_snapshot_idx"]]
+        if not noop:
+            [[remove(fn) for fn in glob.glob(s[0][:-13] + "*")] for idx, s in enumerate(r["snapshots"]) if idx != r["optimal_snapshot_idx"]]
+
+    if noop:
+        logger.info("Invoked with '--noop'; No files actually deleted")
+    logger.info("done")
+
+
+def tidy(folder: str, noop: bool):
+    """"""
+    logger.info(f"Tidying training runs in {folder}")
+    runs = search_runs(folder, "notempty")
+    runs_info = [parse_training_run(r) for r in runs]
+    for r in runs_info:
+        if r["has_final_model"]:
+            logger.info(f"Final model already exist: {r['final_model']}")
+        else:
+            logger.info(f"Using as final model: {r['snapshots'][r['optimal_snapshot_idx']][0][:-13] + '.pth'}")
+            if not noop:
+                copyfile(r["snapshots"][r["optimal_snapshot_idx"]][0][:-13] + ".pth", r["final_model"])
+    if noop:
+        logger.info("Invoked with '--noop'; No files actually copied")
+    logger.info("done")
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs, models, and datasets")
+    parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs an models")
     parser.add_argument("folder", help="Folder to operate on. Can be a training run or a dataset")
-    parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots (e.g. crashes, hangs, training too slow)", action="store_true")
+    parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots", action="store_true")
+    parser.add_argument("--clean-intermediate", help="Delete all sub-optimal snapshots in a training run ", action="store_true")
+    parser.add_argument("--tidy", help="Ensure that there's a 'model.pth' file which matches the snapshot with the best validation score", action="store_true")
+    parser.add_argument("--noop", help="List files to be deleted without actually deleting them", action="store_true")
 
     args = parser.parse_args()
+
+    if args.tidy:
+        tidy(args.folder, args.noop)
+    if args.clean_empty:
+        clean_empty(args.folder, args.noop)
+    if args.clean_intermediate:
+        clean_intermediate(args.folder, args.noop)
