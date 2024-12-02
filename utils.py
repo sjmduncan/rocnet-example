@@ -61,14 +61,14 @@ def hamming(v1, v2, two_sided=True):
 
 
 def vox_points(pts: o3d.geometry.PointCloud, vox_size: float):
-    """Voxelize pointcloud, retrieve voxel centers, and return a pointcloud of those"""
+    """Voxelize pointcloud, retrieve voxel centers as a point cloud"""
     vox = o3d.geometry.VoxelGrid.create_from_point_cloud(pts, voxel_size=vox_size)
     vox_pts = np.array([v.grid_index for v in vox.get_voxels()]) + vox.origin.astype(int)
     return o3d.geometry.PointCloud(o3d.utility.Vector3dVector(vox_pts))
 
 
 def compare_pts(ref: np.array, cmp: np.array, vox_size: float) -> dict:
-    """Computes the hausdorff (in either direction), and chamfer distances between the input cloud, also the hausdorff and hamming distances (both in either direction) after quantising with both to vox_size
+    """Computes the hausdorff (in both directions), and chamfer distances between the input cloud, also the hausdorff and hamming distances (both in both directions) after quantising with both to vox_size
 
     ref: array of raw points, probably straight from a LIDAR or other point cloud source
     cmp: array of points retrieved from a RocNet code
@@ -121,9 +121,9 @@ def compare_pts(ref: np.array, cmp: np.array, vox_size: float) -> dict:
 
 def dir_type(dir):
     """Checks type of directory based on its contents:
-    - 'training-run' contains train.toml and train.log and no subdirectories
-    - 'run-collection' contains train.toml but not train.log, no subdirectory check because it might not have been run yet
-    - 'run-collection-collection' contains subdirectories and at least one of them is a run-cllection
+    - 'training-run' contains train.log and no subdirectories
+    - 'run-collection' contains train.toml but not train.log, may contain subdirectories
+    - 'run-collection-collection' contains at least one subdirectory which is a run collection
 
     dir: dir to check
 
@@ -188,7 +188,7 @@ def search_runs(parent, run_type="notempty"):
 
 
 def parse_training_run(run_dir):
-    """List all info about a training run"""
+    """List all info about a training run, including the loss, which snapshot has optimal validation loss, and whether the final model file exists"""
     has_final_model = pth.exists(pth.join(run_dir, "model.pth"))
     snapshots = glob.glob(pth.join(run_dir, "model_*_training.pth"))
     snapshots.sort()
@@ -214,20 +214,10 @@ def run_epochs(run_dir):
     return epochs
 
 
-def run_optimal_epoch(run_dir):
-    """Return the epoch with the optimal validation score"""
-    re = run_epochs(run_dir)
-
-
 def model_id(mc: dict):
     """Return"""
     s_or_f = "f" if mc.has_root_encoder else "s"
     return f"{mc.grid_dim}-{s_or_f}{mc.feature_code_size}"
-
-
-def run_id(rc: dict):
-    """Get the id of a training run"""
-    return f"{model_id(rc.model)}"
 
 
 def describe_run(run):
@@ -237,7 +227,7 @@ def describe_run(run):
     note = cfg.note
     epoch = run_epochs(run)
     max_epoch = max(epoch) if len(epoch) > 0 else 0
-    return ed({"collection": collection, "time": time, "epochs": max_epoch, "note": note, "uid": f"{collection}-{time}-{run_id(cfg)}"})
+    return ed({"collection": collection, "time": time, "epochs": max_epoch, "note": note, "uid": f"{collection}-{time}-{model_id(cfg['model'])}"})
 
 
 def compact_view(geometries, gdim=None):
@@ -259,79 +249,6 @@ def compact_view(geometries, gdim=None):
         b.color = [0, 0, 0] if i == 0 else [0, 1, 0]
     [g.translate(t) for g, t in zip(boxes, txs)]
     return boxes
-
-
-def vis_simple(data, paths, nonblocking=False):
-    sample_idx = 0
-    view = None
-
-    def save_rec_vew(vis):
-        jfile = pth.join(pth.split(paths[sample_idx])[0], "view.json")
-        jstr = vis.get_view_status()
-        with open(jfile, "w") as jfile_out:
-            jfile_out.write(jstr)
-
-    def load_rec_vew(vis):
-        nonlocal view
-        jfile = pth.join(pth.split(paths[sample_idx])[0], "view.json")
-        if not pth.exists(jfile):
-            return
-        with open(jfile, "r") as jfile_in:
-            jstr = jfile_in.read()
-        view = json.loads(jstr)["trajectory"][0]
-        vis.set_view_status(jstr)
-        vis.poll_events()
-        vis.update_renderer()
-
-    def snapshot(vis):
-        vis.capture_screen_image(paths[sample_idx], do_render=False)
-
-    def update(vis):
-        vis.clear_geometries()
-        vis.add_geometry(data[sample_idx], True)
-        vis.get_view_control().set_front(view["front"])
-        vis.get_view_control().set_lookat(view["lookat"])
-        vis.get_view_control().set_up(view["up"])
-        vis.get_view_control().set_zoom(view["zoom"])
-        vis.poll_events()
-        vis.update_renderer()
-        vis.reset_view_point(True)
-        print(paths[sample_idx])
-        snapshot(vis)
-
-    def save_all(vis):
-        nonlocal sample_idx
-        for s in range(len(data)):
-            sample_idx = s
-            load_rec_vew(vis)
-            update(vis)
-
-    def next_sample(vis):
-        nonlocal sample_idx
-        sample_idx = (sample_idx + 1) % len(data)
-        update(vis)
-
-    def prev_sample(vis):
-        nonlocal sample_idx
-        sample_idx = (sample_idx - 1 + len(data)) % len(data)
-        update(vis)
-
-    key_to_callback = {}
-    key_to_callback[ord("N")] = next_sample
-    key_to_callback[ord("B")] = prev_sample
-    key_to_callback[ord("S")] = snapshot
-    key_to_callback[ord("T")] = save_rec_vew
-    key_to_callback[ord("Y")] = load_rec_vew
-    key_to_callback[ord("U")] = save_all
-    tx_vec = -data[-1].get_center()
-    [d.translate(tx_vec) for d in data]
-    if nonblocking:
-        vis = o3d.visualization.Visualizer()
-        vis.create_window()
-        save_all(vis)
-        vis.destroy_window()
-    else:
-        o3d.visualization.draw_geometries_with_key_callbacks([data[sample_idx]], key_to_callback)
 
 
 def visualise_interactive(data, metrics, gdim, model_meta):
