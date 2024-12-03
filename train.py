@@ -50,7 +50,7 @@ if __name__ == "__main__":
         run.logger.info(f"        : epoch {min_epoch}")
 
     try:
-        run.git_snapshot()
+        run._git_snapshot()
     except RuntimeError as e:
         run.logger.warning(f"Failed to save git snapshot: {e}")
 

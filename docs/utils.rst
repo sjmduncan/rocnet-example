@@ -10,10 +10,9 @@ utils.py (script)
 
 
 utils.py (members)
-============
+==================
 
 .. automodule:: utils
    :members:
    :undoc-members:
-   :show-inheritance:
 

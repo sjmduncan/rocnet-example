@@ -74,7 +74,7 @@ def compare_pts(ref: np.array, cmp: np.array, vox_size: float) -> dict:
     cmp: array of points retrieved from a RocNet code
     vox_size: size of the voxels used to quantise the point cloud for RocNet
 
-    returns: dict of the metrics, with keys for quantised versions prefixed with q_
+    returns: dict of the metrics, with keys for quantised versions prefixed with q\_
     """
 
     logger.info("compare_pts: Create point clouds")
@@ -384,7 +384,7 @@ class Run:
             torch.manual_seed(seed)
             # FIXME can't have this with CUDA torch.use_deterministic_algorithms(True)
 
-    def git_snapshot(self):
+    def _git_snapshot(self):
         # If git exists and this is being run in a repository, then a file with the name
         # <timestamp>-<git-hash>.diff will be created with the patch of the current repository changes
         # to be able to record exactly which version of the software was used for a training run

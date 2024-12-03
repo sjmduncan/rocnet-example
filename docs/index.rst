@@ -15,7 +15,7 @@ This is RocNet
    slurm
 
 .. toctree::
-   :maxdepth: 10
+   :maxdepth: 1
    :caption: Script Usage
 
    examine_dataset
@@ -30,7 +30,7 @@ This is RocNet
    utils
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
    :caption: API Documentation
    
    rocnet

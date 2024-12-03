@@ -32,7 +32,6 @@ rocnet.dataset
 .. automodule:: rocnet.dataset
    :members:
    :undoc-members:
-   :show-inheritance:
 
 rocnet.file
 ------------------
@@ -40,7 +39,6 @@ rocnet.file
 .. automodule:: rocnet.file
    :members:
    :undoc-members:
-   :show-inheritance:
 
 rocnet.model
 -------------------
@@ -48,7 +46,6 @@ rocnet.model
 .. automodule:: rocnet.model
    :members:
    :undoc-members:
-   :show-inheritance:
 
 rocnet.octree
 --------------------
@@ -56,7 +53,6 @@ rocnet.octree
 .. automodule:: rocnet.octree
    :members:
    :undoc-members:
-   :show-inheritance:
 
 rocnet.rocnet
 --------------------
@@ -86,7 +82,6 @@ rocnet.rocnet
 .. automodule:: rocnet.rocnet
    :members:
    :undoc-members:
-   :show-inheritance:
 
 rocnet.trainer
 ---------------------
@@ -127,7 +122,6 @@ rocnet.trainer
 .. automodule:: rocnet.trainer
    :members:
    :undoc-members:
-   :show-inheritance:
 
 rocnet.utils
 -------------------
@@ -135,5 +129,4 @@ rocnet.utils
 .. automodule:: rocnet.utils
    :members:
    :undoc-members:
-   :show-inheritance:
 

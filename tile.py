@@ -4,7 +4,7 @@ import os.path as pth
 
 import numpy as np
 
-from rocnet.utils import write_file
+from rocnet.utils import save_file
 
 import utils
 
