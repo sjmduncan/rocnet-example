@@ -13,7 +13,7 @@ from torchinfo import summary
 from rocnet.utils import sizeof_fmt as sf
 
 
-def plot_loss(loss, title, run, n_params, logger):
+def _plot_loss(loss, title, run, n_params, logger):
     _, ax1 = plt.subplots(figsize=(10, 7))
     sel = [2, 3, 4, 5, 6, 7]
     ax1.plot(loss[:, sel])
@@ -40,10 +40,15 @@ def plot_loss(loss, title, run, n_params, logger):
     return ax1, ax2
 
 
-if __name__ == "__main__":
+def _get_args():
     parser = argparse.ArgumentParser(prog="test.py", description="Evaluate the performance of one or more RocNet models")
     parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
-    parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true", default=True)
+    parser.add_argument("--visualise", help="Plot the loss and learning rate curves", action="store_true")
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _get_args()
     args = parser.parse_args()
     run = utils.Run(args.folder, "test", "examine", False, DEFAULT_CONFIG)
     runs = utils.search_runs(run.cfg.models)
@@ -54,6 +59,6 @@ if __name__ == "__main__":
     model_n_params = [[n[0].total_params, n[1].total_params, n[2].total_params - n[1].total_params] for n in model_summaries]
     run_descriptions = [utils.describe_run(r) for r in runs]
     title = [f"{d['collection']}" for d in run_descriptions]
-    plts = [plot_loss(l, t, r, p, run.logger) for l, t, r, p in zip(loss, title, runs, model_n_params)]
+    plts = [_plot_loss(l, t, r, p, run.logger) for l, t, r, p in zip(loss, title, runs, model_n_params)]
     if args.visualise:
         plt.show()

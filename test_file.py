@@ -15,10 +15,16 @@ import torch
 
 vox_sz = 0.5  # TODO: Get this from the apropriate config file
 
-if __name__ == "__main__":
+
+def _get_args():
     parser = argparse.ArgumentParser(prog="test_file.py", description="Evaluate and visualise the per-file performance and lossiness of one or more models")
     parser.add_argument("folder", help="Folder containing either train.toml or a test.toml file which points to multiple training runs to process")
     parser.add_argument("--visualise", help="Render the original and recovered point clouds side by side", action="store_true", default=False)
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _get_args()
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "test", "test-file", False, DEFAULT_CONFIG)

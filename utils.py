@@ -1,4 +1,4 @@
-"""A set of utilities for working with instances of RocNet, datasets, and pointclouds"""
+"""A set of utilities for working with instances of RocNet, datasets, and pointclouds. This is both a script, and a module that can be imported."""
 
 import argparse
 import glob
@@ -194,7 +194,7 @@ def parse_training_run(run_dir):
     snapshots.sort()
     snapshot_epochs = [int(pth.split(p)[1].split("_")[1]) for p in snapshots]
     loss = np.loadtxt(snapshots[-1][:-12] + "loss.csv")
-    snapshot_dicts = [torch.load(f[:-13] + ".pth") for f in snapshots]
+    snapshot_dicts = [torch.load(f[:-13] + ".pth", map_location="cpu") for f in snapshots]
     snapshot_meta = [d["metadata"] for d in snapshot_dicts]
     snapshot_losses = [d["loss"][-1] for d in snapshot_meta]
 
@@ -418,7 +418,9 @@ def clean_intermediate(folder: str, noop: bool):
     runs_info = [parse_training_run(r) for r in runs]
     for r in runs_info:
         [logger.info(f"Keeping  {fn}") for fn in glob.glob(r["snapshots"][r["optimal_snapshot_idx"]][0][:-13] + "*")]
-        [[logger.info(f"Deleting {fn}") for fn in glob.glob(s[0][:-13] + "*")] for idx, s in enumerate(r["snapshots"]) if idx != r["optimal_snapshot_idx"]]
+        if len(r["snapshots"]) != (r["optimal_snapshot_idx"] + 1):
+            [logger.info(f"Keeping  {fn}") for fn in glob.glob(r["snapshots"][-1][0][:-13] + "*")]
+        [[logger.info(f"Deleting {fn}") for fn in glob.glob(s[0][:-13] + "*")] for idx, s in enumerate(r["snapshots"][:-1]) if idx != r["optimal_snapshot_idx"]]
         if not noop:
             [[remove(fn) for fn in glob.glob(s[0][:-13] + "*")] for idx, s in enumerate(r["snapshots"]) if idx != r["optimal_snapshot_idx"]]
 
@@ -444,13 +446,18 @@ def tidy(folder: str, noop: bool):
     logger.info("done")
 
 
-if __name__ == "__main__":
+def _get_args():
     parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs an models")
     parser.add_argument("folder", help="Folder to operate on. Can be a training run or a dataset")
     parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots", action="store_true")
     parser.add_argument("--clean-intermediate", help="Delete all sub-optimal snapshots in a training run ", action="store_true")
     parser.add_argument("--tidy", help="Ensure that there's a 'model.pth' file which matches the snapshot with the best validation score", action="store_true")
     parser.add_argument("--noop", help="List files to be deleted without actually deleting them", action="store_true")
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _get_args()
 
     args = parser.parse_args()
 

@@ -15,11 +15,17 @@ import torch
 
 import utils
 
-if __name__ == "__main__":
+
+def _get_args():
     parser = argparse.ArgumentParser(prog="train.py", description="Start rocnet training")
     parser.add_argument("folder", help="Output <folder> which will contain train.toml and one or more train_<TIMESTAMP>")
-    parser.add_argument("--resume-from", help="Folder from a previous partial training run with at least one set of .pth files", default=None)
+    parser.add_argument("--resume-from", help="Resume from the best (in terms of loss) snapshot of a previous training run, either a training run or a collection of runs in which case the most recent run in the collection is used", default=None)
     parser.add_argument("--seed", help="Integer for torch.manual_seed, will also invoke torch.use_deterministic_algorithms()", default=None)
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _get_args()
 
     args = parser.parse_args()
 

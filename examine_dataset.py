@@ -6,13 +6,19 @@ from rocnet.dataset import Dataset
 
 import utils
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog="test.py", description="Evaluate the performance of one or more RocNet models")
+
+def _get_args():
+    parser = argparse.ArgumentParser(prog="test.py", description="Examine the composition of a dataset and/or visualise the point  clouds")
     parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
-    parser.add_argument("--grid-dim", help="grid dim", default=128)
-    parser.add_argument("--leaf-dim", help="leaf dim", default=32)
-    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=-1)
-    parser.add_argument("--train", help="Examine the training dataset", default=False)
+    parser.add_argument("--grid-dim", help="Grid dimension of the voxel grid contained in one octree", default=128)
+    parser.add_argument("--leaf-dim", help="Size of the octree leaf block", default=32)
+    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=None)
+    parser.add_argument("--visualise", help="Render the point clouds", action="store_true")
+    return parser
+
+
+if __name__ == "__main__":
+    parser = _get_args
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "train", "examine-dataset", False)
