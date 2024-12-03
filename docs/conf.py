@@ -35,3 +35,6 @@ html_static_path = ["_static"]
 # https://www.sphinx-doc.org/en/master/usage/extensions/todo.html#configuration
 
 todo_include_todos = True
+
+# Don't include button to show the .rst source
+html_show_sourcelink = False
