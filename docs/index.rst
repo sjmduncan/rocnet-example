@@ -6,7 +6,7 @@
 RocNet
 ============================
 
-This is RocNet
+Recursive Octree Network (RocNet) implementation that leans towards applications in data compression.
 
 .. toctree::
 

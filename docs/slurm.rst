@@ -2,9 +2,9 @@ Train with SLURM
 ================
 
 These instructions assume you access the cluster via ``ssh`` (including using the VSCode remote connect plugin), and will use ``sbatch`` to start training jobs.
-Mostly, this is the same as the Quickstart instructions, but you probably have to live with whichever versions of python and CUDA are already installed on the nodes you're going to use.
+Mostly, this is the same as the Quickstart instructions except that you probably have to live with whichever versions of python and CUDA are already installed on the nodes you're going to use.
 
-All of these instructions are run on the cluster
+All of these instructions are to be run on the a login node on the cluster
 
 1. Get code ``git clone --depth 1 https://altitude.otago.ac.nz/rocnet/rocnet-example.git``
 2. Replace the ``{{PLACEHOLDER}}`` values in ``cluster-utils/slurm-check-*.sh`` files match your environment
@@ -29,9 +29,9 @@ All of these instructions are run on the cluster
    - Consider changing the ``--time`` directive if your job is likely to take longer (or shorter)
 10. From within ``rocnet-example/data/weights/`` run ``sbatch slurm-train.sh``, use ``squeue --me`` to check the status and/or wait for the ``.out`` file to appear.
 
-   - you can use ``tail -f slurm-{JOB_NUM}.out`` to modify messages as the output of the file changes
+   - you can use ``tail -f slurm-{JOB_NUM}.out`` to print messages as they're flushed to the log file (i.e. the same output that you see running training locally, but a bit delayed)
 
 11. Once the training run is done you need to retrieve the training run folder (probably using ``scp`` or ``rsync``), and then you can use the ``examine_*`` and ``test_*`` scripts to evaluate the result.
+12. If you've got a partial training run (something crashed, training ran too longer than the SLURM ``--time`` limit) copy ``slurm-train-resume.sh`` and edit the ``{{PLACEHOLDRS}}`` to resume training from an existing snapshot of the model weights and optimiser.
 
-
-
+   - Note that you'll probably need to run ``python utils.py --tidy $PATH-TO-TRAINING-RUN`` to make sure that the resume will actually work (especially if training was interrupted or ran out of time). 

@@ -38,3 +38,4 @@ todo_include_todos = True
 
 # Don't include button to show the .rst source
 html_show_sourcelink = False
+html_favicon = "favicon.ico"
