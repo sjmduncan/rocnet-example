@@ -24,7 +24,16 @@ logger.setLevel(level=logging.INFO)
 
 
 def hausdorff(p1, p2, two_sided=True):
-    """Compute the Hausdorff distance between p1 and p2 (or from p1 to p2 if two_sided=False)"""
+    """Compute the Hausdorff distance between p1 and p2 (or just from p1 to p2 if two_sided=False)
+
+    :param p1: first point cloud
+    :type p1: open3d.geometry.PointCloud
+    :param p2: second point cloud
+    :type p2: open3d.geometry.PointCloud
+    :param two_sided: set to false to compute the distance from p1 to p2 instead of in both directions (default=True)
+    :type two_sided: bool
+    :returns: hausdorff distance (float)
+    """
     try:
         nn_dist1 = np.max(np.asarray(p1.compute_point_cloud_distance(p2)), axis=0)
         if two_sided:
@@ -36,7 +45,14 @@ def hausdorff(p1, p2, two_sided=True):
 
 
 def chamfer(p1, p2):
-    """Compute the chamfer distance between p1 and p2"""
+    """Compute the chamfer distance between p1 and p2
+
+    :param p1: first point cloud
+    :type p1: open3d.geometry.PointCloud
+    :param p2: second point cloud
+    :type p2: open3d.geometry.PointCloud
+    :returns: chamfer distance (float)
+    """
     try:
         nn_dist1 = np.asarray(p1.compute_point_cloud_distance(p2))
         nn_dist2 = np.asarray(p2.compute_point_cloud_distance(p1))
@@ -48,7 +64,16 @@ def chamfer(p1, p2):
 
 
 def hamming(v1, v2, two_sided=True):
-    """Compute the hamming distance between two voxel grids"""
+    """Compute the hamming distance between v1 and v2 (or just from v1 to v2 if two_sided=False)
+
+    :param p1: first point cloud
+    :type p1: open3d.geometry.PointCloud
+    :param p2: second point cloud
+    :type p2: open3d.geometry.PointCloud
+    :param two_sided: set to false to compute the distance from p1 to p2 instead of in both directions (default=True)
+    :type two_sided: bool
+    :returns: hamming distance (float)
+    """
     vi2 = o3d.utility.Vector3dVector([v2.get_voxel_center_coordinate(v.grid_index) for v in v2.get_voxels()])
     v2_in_v1 = np.array(v1.check_if_included(vi2))
     result = np.sum(v2_in_v1 == 0)
@@ -61,20 +86,30 @@ def hamming(v1, v2, two_sided=True):
 
 
 def vox_points(pts: o3d.geometry.PointCloud, vox_size: float):
-    """Voxelize pointcloud, retrieve voxel centers as a point cloud"""
+    """Quantise a point cloud to the provided voxel size, return a point cloud of the centers of the occupied voxels
+
+    :param pts: Pointcloud to voxelise
+    :type pts: open3d.geometry.PointCloud
+    :param vox_size: Voxel size to
+    :type pts: float
+    :returns: Pointcloud where the points are the centers of the occupied voxels in voxel-grid space
+    """
     vox = o3d.geometry.VoxelGrid.create_from_point_cloud(pts, voxel_size=vox_size)
     vox_pts = np.array([v.grid_index for v in vox.get_voxels()]) + vox.origin.astype(int)
     return o3d.geometry.PointCloud(o3d.utility.Vector3dVector(vox_pts))
 
 
 def compare_pts(ref: np.array, cmp: np.array, vox_size: float) -> dict:
-    """Computes the hausdorff (in both directions), and chamfer distances between the input cloud, also the hausdorff and hamming distances (both in both directions) after quantising with both to vox_size
+    """Computes the hausdorff (in both directions), and chamfer distances between the input cloud, also the hausdorff and hamming distances with both ref and cmp quantised to vox_size
 
-    ref: array of raw points, probably straight from a LIDAR or other point cloud source
-    cmp: array of points retrieved from a RocNet code
-    vox_size: size of the voxels used to quantise the point cloud for RocNet
+    :param ref: array of raw points, probably straight from a LIDAR or other point cloud source
+    :type ref: numpy.array
+    :param cmp: array of points retrieved from a RocNet code
+    :type cmp: numpy.array
+    :param vox_size: size of the voxels used to quantise the point cloud for RocNet
+    :type vox_size: float
 
-    returns: dict of the metrics, with keys for quantised versions prefixed with q\_
+    :returns: a dict of all the metrics, where quantised metrics (i.e. between voxel grids) are prefixed by ``q_``
     """
 
     logger.info("compare_pts: Create point clouds")
@@ -121,12 +156,13 @@ def compare_pts(ref: np.array, cmp: np.array, vox_size: float) -> dict:
 
 def dir_type(dir):
     """Checks type of directory based on its contents:
-    - 'training-run' contains train.log and no subdirectories
-    - 'run-collection' contains train.toml but not train.log, may contain subdirectories
-    - 'run-collection-collection' contains at least one subdirectory which is a run collection
+        - 'training-run' contains train.log and no subdirectories
+        - 'run-collection' contains train.toml but not train.log, may or may not contain subdirectories
+        - 'run-collection-collection' contains at least one subdirectory which is a run collection
 
-    dir: dir to check
-
+    :param dir: folder to check
+    :type dir: str
+    :returns: one of ``'training-run'``, ``'run-collection'``, ``'run-collection-collection'`` or None
     """
     dir_contents = glob.glob(pth.join(dir, "*"))
     dir_dirs = [d for d in dir_contents if pth.isdir(d)]
@@ -144,51 +180,66 @@ def dir_type(dir):
     if any([dir_type(d) == "run-collection" for d in dir_dirs]):
         return "run-collection-collection"
 
-    return "unknown"
+    return None
 
 
-def search_runs(parent, run_type="notempty"):
-    """Recursive search for all trainig runs contained in parent. Returns a flat list of the full paths to all training runs"""
+def search_runs(dir: str, run_type="notempty"):
+    """Search for all training runs in the provided directory
+
+    :param dir: Folder which you expect to be a training run, a run collection, or a run collection collection
+    :type dir: str
+    :param run_type: Type of run to find, one of ``'empty'``, ``'notempty'``, or ``'all'``
+    :type run_type: str
+
+    :returns: a flat list of all of the training runs in the folder
+    """
 
     if run_type not in ["empty", "notempty", "all"]:
         raise ValueError(f"run_type should be one of ['empty', 'notempty', 'all']. Current value={run_type}")
 
-    if isinstance(parent, list):
-        return [r for rr in [search_runs(p, run_type) for p in parent] for r in rr]
+    if isinstance(dir, list):
+        return [r for rr in [search_runs(p, run_type) for p in dir] for r in rr]
 
-    assert pth.exists(parent), f"Path does not exist: {parent}"
+    assert pth.exists(dir), f"Path does not exist: {dir}"
 
-    dt = dir_type(parent)
+    dt = dir_type(dir)
     if dt == "training-run":
         if run_type == "all":
-            return [parent]
+            return [dir]
 
-        snapshots = glob.glob(pth.join(parent, "*.pth"))
+        snapshots = glob.glob(pth.join(dir, "*.pth"))
         n_models = len(snapshots)
         if n_models > 0 and "model.pth" not in [pth.basename(s) for s in snapshots]:
-            logger.warning(f"Has snapshots but no final model.pth: {parent}")
-            return [parent]
+            logger.warning(f"Has snapshots but no final model.pth: {dir}")
+            return [dir]
         elif n_models == 0 and run_type == "empty":
-            return [parent]
+            return [dir]
         elif n_models > 0 and run_type == "notempty":
-            return [parent]
+            return [dir]
 
         return None
 
     elif dt == "run-collection":
-        dirs = glob.glob(pth.join(parent, "train_*"))
+        dirs = glob.glob(pth.join(dir, "train_*"))
         dirs = [d for d in dirs if pth.isdir(d)]
         runs = [r for r in [search_runs(d, run_type) for d in dirs]]
         runs = [r for r in runs if r is not None]
         return [r for rr in runs for r in rr]
     elif dt == "run-collection-collection":
-        runs_tmp = [search_runs(p, run_type) for p in glob.glob(pth.join(parent, "*")) if pth.isdir(p)]
+        runs_tmp = [search_runs(p, run_type) for p in glob.glob(pth.join(dir, "*")) if pth.isdir(p)]
         runs_tmp = [r for r in runs_tmp if r is not None]
         return [rc for rcc in runs_tmp for rc in rcc]
 
 
 def parse_training_run(run_dir):
-    """List all info about a training run, including the loss, which snapshot has optimal validation loss, and whether the final model file exists"""
+    """List all info about a training run, including the loss, which snapshot has optimal validation loss, and whether the final model file exists
+
+    :param run_dir: path to the training run folder
+    :type run_dir: str
+
+    :returns: Dictionary containing model information
+    """
+
     has_final_model = pth.exists(pth.join(run_dir, "model.pth"))
     snapshots = glob.glob(pth.join(run_dir, "model_*_training.pth"))
     snapshots.sort()
@@ -208,19 +259,20 @@ def parse_training_run(run_dir):
 
 
 def run_epochs(run_dir):
-    """find all snapshot epochs for model_*_training.pth files, return list in ascending order"""
+    """Find all snapshot epochs for model_*_training.pth files, return list in ascending order"""
     epochs = [int(pth.split(p)[1].split("_")[1]) for p in glob.glob(pth.join(run_dir, "model_*_training.pth"))]
     epochs.sort()
     return epochs
 
 
-def model_id(mc: dict):
-    """Return"""
-    s_or_f = "f" if mc.has_root_encoder else "s"
-    return f"{mc.grid_dim}-{s_or_f}{mc.feature_code_size}"
+def model_id(model_config: dict):
+    """Return the ID of the model derived from model_config"""
+    s_or_f = "f" if model_config.has_root_encoder else "s"
+    return f"{model_config.grid_dim}-{s_or_f}{model_config.feature_code_size}"
 
 
 def describe_run(run):
+    """Returns a dict with various metadata about the training run, including run collection, train start time, epoch, and model UID (result of model_id plus the collection name and the start time)"""
     collection = pth.basename(pth.split(run)[0])
     time = pth.split(run)[1].replace("train_", "")
     cfg = load_file(pth.join(run, "train.toml"), quiet=True)
@@ -230,13 +282,22 @@ def describe_run(run):
     return ed({"collection": collection, "time": time, "epochs": max_epoch, "note": note, "uid": f"{collection}-{time}-{model_id(cfg['model'])}"})
 
 
-def compact_view(geometries, gdim=None):
+def compact_view(geometries, bbox_size=None):
+    """Transform a list of geometries (in-place) so that they're stacked end-to-end along the X-axis for better comparison
+
+    :param geometries: list of Open3D geometries to transform
+    :type run_dir: list
+    :param bbox_size: cubic bounding box of each object, if not specified then the bounding box is computed to match the bounds of each geometry element
+    :type bbox_size: float
+
+    :returns: list of bounding boxes of the models
+    """
     [g.translate(-g.get_min_bound()) for g in geometries]
     bl = [g.get_min_bound() for g in geometries]
-    if gdim is None:
+    if bbox_size is None:
         tr = [g.get_max_bound() for g in geometries]
     else:
-        tr = [b + np.array([gdim, gdim, gdim]) for b in bl]
+        tr = [b + np.array([bbox_size, bbox_size, bbox_size]) for b in bl]
     sizes = [r - b for b, r in zip(bl, tr)]
     x_offsets = [s[0] * 1.1 for s in sizes]
     x_offsets = np.cumsum(x_offsets)
@@ -251,12 +312,24 @@ def compact_view(geometries, gdim=None):
     return boxes
 
 
-def visualise_interactive(data, metrics, gdim, model_meta):
+def visualise_interactive(data, metrics, bbox_size, model_meta):
+    """Visualise a list of geometries with a matching list of metrics and model metadata, with keyboard controls for cycling through models and samples
+
+    :param data: list of lists of geometries to render
+    :type data: list
+    :param metrics: list of lists of metrics to print for each geometry sample
+    :type metrics: list
+    :param bbox_size: bbox_size to pass to compact_geometries
+    :type bbox_size: float
+    :param model_meta: list of metadata for each model
+    :type model_meta: list
+
+    """
     dataset_idx = 0
     sample_idx = 0
     look_sample_idx = 0
 
-    bounding_boxes = [[compact_view(s, gdim) for s in d] for d in data]
+    bounding_boxes = [[compact_view(s, bbox_size) for s in d] for d in data]
 
     def print_metric():
         print()
@@ -331,37 +404,38 @@ def visualise_interactive(data, metrics, gdim, model_meta):
 
 
 class Run:
-    """Handle some runtime paths and config files
+    """Start a new run with {out_dir} as the working dir, {out_dir}/{cfg_type}.toml as the config, and {out_dir}/{run_type}_ as the log and/or run_dir prefix
 
-    Useful members:
-      START_TIME: filename-friendly timestamp of when this object was initialised
-      logger: logger instance for top-level runtime modules to use
-      cfg_path: path to the config file
-      cfg: easydict containing the loaded config file
-      run_dir: where all the output goes (is the same as dir if created with is_collection==False)
-      dir: directory containing the config file, and the output
+    :param out_dir: directory which contains the specified .toml config file, and where the output will go
+    :type out_dir: str
+    :param cfg_type: type of config to load, which is also the basename of the config file
+    :type cfg_type: str
+    :param run_type: prefix of basename of log file and if is_collection==True also self.run_dir
+    :type run_type: stry
+    :param is_collection: self.run_dir is {out_dir}/{run_type}_{START_TIME} (use this for training, benchmarking, or things which produce an annoying number of output files)
+    :type is_collection: bool
+    :param default_config: dict with default config values, should contain the whole structure of the config file
+    :type default_config: dict
+    :param seed: random seed to use for torch.seed NOTE: this should also use torch.use_deterministic_algorithms(True) but it's not that simple with CUDA
+    :type seed: int
+
+    Useful Attributes:
     """
 
     def __init__(self, out_dir: str, cfg_type: str, run_type: str, is_collection: bool = False, default_config: dict = None, seed: int = None):
-        """Start a new run with {out_dir} as the working dir, {out_dir}/{cfg_type}.toml as the config, and {out_dir}/{run_type}_ as the log and/or run_dir prefix
-
-        out_dir: directory which contains the config file and will contain the output
-        cfg_type: basename of the config file
-        run_type: prefix of basename of log file and if is_collection==True also self.run_dir
-        is_collection: self.run_dir is {out_dir}/{run_type}_{START_TIME} (use this for training, benchmarking, or things which produce an annoying number of output files)
-        default_config: dict with default config values, should contain the whole structure of the config file (and can have extra values)
-        seed: int to use for torch.seed, if this is not none then will also invoke torch.use_deterministic_algorithms()
-        """
-
         self.TIME_FMT = "%Y-%m-%d_%H.%M.%S"
+        "Filename-firendly timestamp format string: '%Y-%m-%d_%H.%M.%S'"
         self.START_TIME = datetime.now().strftime(self.TIME_FMT)
+        "Time when this run was started"
 
         self.logger = logger
+        "Logger instance for convenience"
 
         self.run_type = run_type
         self.cfg_path = pth.join(out_dir, f"{cfg_type}.toml")
         if pth.exists(self.cfg_path):
             self.cfg = load_file(self.cfg_path, default_config)
+            "Config dict for whatever you're running, probably loaded from a .toml file"
         elif default_config is not None:
             ensure_file(self.cfg_path, default_config)
             self.logger.warning(f"New default config file created: {self.cfg_path}")
@@ -374,6 +448,7 @@ class Run:
 
         self.dir = out_dir
         self.run_dir = f"{self._run_prefix}_{self.START_TIME}" if is_collection else out_dir
+        "Directory where all the output goes"
         makedirs(self.run_dir, exist_ok=True)
         if is_collection:
             logging.basicConfig(filename=pth.join(self.run_dir, f"{self.run_type}.log"), level=logging.INFO)
@@ -398,7 +473,13 @@ class Run:
 
 
 def clean_empty(folder: str, noop: bool):
-    """"""
+    """Remove all empty training runs (i.e. those without any .pth files).
+
+    :param folder: training run, run collection, or collection of run collections to clean
+    :type folder: str
+    :param noop: set to true to print the operations without actually doing them
+    :type noop: bool
+    """
     runs = search_runs(folder, "empty")
     [[logger.info(f"Deleting {f}") for f in glob.glob(pth.join(d, "*"))] for d in runs]
     [logger.info(f"Deleting {f}") for f in runs]
@@ -411,7 +492,13 @@ def clean_empty(folder: str, noop: bool):
 
 
 def clean_intermediate(folder: str, noop: bool):
-    """"""
+    """Delete all training run snapshots except for those with the optimla validation loss, and the latest snapshots (which might not be the same)
+
+    :param folder: training run, run collection, or collection of run collections to clean
+    :type folder: str
+    :param noop: set to true to print the operations without actually doing them
+    :type noop: bool
+    """
     logger.info(f"Removing intermediate snapshots from {folder}")
     runs = search_runs(folder, "notempty")
     runs = search_runs(folder, "notempty")
@@ -430,7 +517,13 @@ def clean_intermediate(folder: str, noop: bool):
 
 
 def tidy(folder: str, noop: bool):
-    """"""
+    """Ensure that a training run contains a model.pth file which corresponds to the model weights which produced the optimal validation loss
+
+    :param folder: training run, run collection, or collection of run collections to tidy
+    :type folder: str
+    :param noop: set to true to print the operations without actually doing them
+    :type noop: bool
+    """
     logger.info(f"Tidying training runs in {folder}")
     runs = search_runs(folder, "notempty")
     runs_info = [parse_training_run(r) for r in runs]
@@ -447,12 +540,12 @@ def tidy(folder: str, noop: bool):
 
 
 def _get_args():
-    parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs an models")
-    parser.add_argument("folder", help="Folder to operate on. Can be a training run or a dataset")
-    parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots", action="store_true")
-    parser.add_argument("--clean-intermediate", help="Delete all sub-optimal snapshots in a training run ", action="store_true")
-    parser.add_argument("--tidy", help="Ensure that there's a 'model.pth' file which matches the snapshot with the best validation score", action="store_true")
-    parser.add_argument("--noop", help="List files to be deleted without actually deleting them", action="store_true")
+    parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs and models.")
+    parser.add_argument("folder", help="Training run or collection of training runs to operate on.")
+    parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots. Use with caution, might delete stuff while training is in progress.", action="store_true")
+    parser.add_argument("--clean-intermediate", help="Delete all sub-optimal snapshots in a training run, save only the best (optimal validation loss score) and latest (which might not be the same).", action="store_true")
+    parser.add_argument("--tidy", help="Ensure that there's a 'model.pth' file which matches the snapshot with the best validation score.", action="store_true")
+    parser.add_argument("--noop", help="List file deletion/modification without actually doing them.", action="store_true")
     return parser
 
 

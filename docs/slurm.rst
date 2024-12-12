@@ -22,16 +22,12 @@ All of these instructions are to be run on the a login node on the cluster
    2. ``dataset`` - a dataset of tiles created from the ``.laz`` files
    3. ``weights`` - a training config file, and an example training run with a set of model weights and training progress snapshots
 
-8. Copy the ``data`` folder inside ``example-data.zip`` to ``rocnet-example/data``
+8. run ``unzip example-data.zip`` and move the resulting ``example-data/data`` folder to ``rocnet-example/data``
 9. Copy ``cluster-utils/slurm-train.sh`` to  ``rocnet-example/data/weights`` and make sure that all of the ``{{PLACEHOLDERS}}`` are replaced with real stuff from your environment
-
    - Also make sure that the ``--mem`` directives is within the memory limit of the GPU that you're using
    - Consider changing the ``--time`` directive if your job is likely to take longer (or shorter)
 10. From within ``rocnet-example/data/weights/`` run ``sbatch slurm-train.sh``, use ``squeue --me`` to check the status and/or wait for the ``.out`` file to appear.
-
    - you can use ``tail -f slurm-{JOB_NUM}.out`` to print messages as they're flushed to the log file (i.e. the same output that you see running training locally, but a bit delayed)
-
 11. Once the training run is done you need to retrieve the training run folder (probably using ``scp`` or ``rsync``), and then you can use the ``examine_*`` and ``test_*`` scripts to evaluate the result.
 12. If you've got a partial training run (something crashed, training ran too longer than the SLURM ``--time`` limit) copy ``slurm-train-resume.sh`` and edit the ``{{PLACEHOLDRS}}`` to resume training from an existing snapshot of the model weights and optimiser.
-
    - Note that you'll probably need to run ``python utils.py --tidy $PATH-TO-TRAINING-RUN`` to make sure that the resume will actually work (especially if training was interrupted or ran out of time). 
