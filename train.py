@@ -36,18 +36,21 @@ if __name__ == "__main__":
     if args.resume_from is not None:
         dt = utils.dir_type(args.resume_from)
         if dt == "training-run":
-            resume_path = args.resume_from
+            resume_from_run = args.resume_from
         elif dt == "run-collection":
             runs = utils.search_runs(args.resume_from)
             runs.sort()
-            resume_path = runs[-1]
+            resume_from_run = runs[-1]
         else:
             raise FileNotFoundError(f"Folder does not contain a non-empty training run: {args.resume_from}")
 
-        run_meta = torch.load(pth.join(resume_path, "model.pth"))["metadata"]
+        run_meta = torch.load(pth.join(resume_from_run, "model.pth"))["metadata"]
         min_epoch = run_meta["epoch"] + 1
-        run.logger.info(f"Resuming: {resume_path}")
+        resume_path = pth.join(resume_from_run, f"model_{min_epoch}")
+        run.logger.info(f"Resuming: {resume_from_run}")
         run.logger.info(f"        : epoch {min_epoch}")
+    else:
+        resume_path = None
 
     try:
         run._git_snapshot()
@@ -76,9 +79,8 @@ if __name__ == "__main__":
         max_test_samples = None
 
     valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_samples=max_test_samples, file_list=pth.join(run.dir, "valid_files.csv"))
-    trainer = Trainer(run.run_dir, run.cfg, dataset, valid_dataset)
+    trainer = Trainer(run.run_dir, run.cfg, dataset, valid_dataset, resume_path)
     if args.resume_from is not None:
-        trainer.load_snapshot(pth.join(resume_path, f"model_{min_epoch}"))
         trainer.start_epoch = min_epoch
     rocnet.utils.save_file(pth.join(run.run_dir, "train.toml"), run.cfg, False)
     trainer.train(on_epoch)
