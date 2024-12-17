@@ -2,16 +2,16 @@
 
 import argparse
 import os.path as pth
+from os import makedirs
 
 import laspy as lp
-from rocnet.file import RocNetFile
-from rocnet.utils import load_file, save_file
-from os import makedirs
-import utils
-from test_tile import DEFAULT_CONFIG
 import open3d as o3d
 import torch
+from rocnet.file import RocNetFile
+from rocnet.utils import load_file, save_file
 
+import utils
+from test_tile import DEFAULT_CONFIG
 
 vox_sz = 0.5  # TODO: Get this from the apropriate config file
 

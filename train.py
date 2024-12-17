@@ -6,21 +6,20 @@ import os.path as pth
 import signal
 
 import rocnet.utils
+import torch
 from rocnet.dataset import Dataset
 from rocnet.rocnet import DEFAULT_CONFIG as MODEL_DEFAULTS
 from rocnet.trainer import DEFAULT_CONFIG as TRAIN_DEFAULTS
 from rocnet.trainer import Trainer, check_training_cfg
-import torch
-
 
 import utils
 
 
 def _get_args():
     parser = argparse.ArgumentParser(prog="train.py", description="Start rocnet training")
-    parser.add_argument("folder", help="Output <folder> which will contain train.toml and one or more train_<TIMESTAMP>")
-    parser.add_argument("--resume-from", help="Resume from the best (in terms of loss) snapshot of a previous training run, either a training run or a collection of runs in which case the most recent run in the collection is used", default=None)
-    parser.add_argument("--seed", help="Integer for torch.manual_seed, will also invoke torch.use_deterministic_algorithms()", default=None)
+    parser.add_argument("folder", help="Output <folder> which will contain train.toml and one or more train_<TIMESTAMP> subfolder")
+    parser.add_argument("--resume-from", help="Resume from the best (in terms of loss) snapshot of a previous training run, either a training run or a collection of runs in which case the best snapshot from the most recent run in the collection is used", default=None)
+    parser.add_argument("--seed", help="Integer for torch.manual_seed. Not that you won't get precise repeatability because the CUDA implementation is incompatible with torch.use_deterministic_algorithms()", default=None)
     return parser
 
 
