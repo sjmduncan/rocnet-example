@@ -5,7 +5,6 @@ tile.toml
 
 .. code-block:: toml
 
-    input_dir = "../rocnet.data/raw/test"
     grid_dim = 256
     vox_size = 0.25
     train_fraction = 0.85
