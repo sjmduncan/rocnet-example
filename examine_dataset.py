@@ -18,7 +18,7 @@ def _get_args():
 
 
 if __name__ == "__main__":
-    parser = _get_args
+    parser = _get_args()
     args = parser.parse_args()
 
     run = utils.Run(args.folder, "train", "examine-dataset", False)
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     ltc_total = np.sum(ltc, axis=0)
     ltc_total[2] = ltc_total[2] / len(ltc)
     l_total = int(sum(ltc_total[:2]))
-    print(f"files {len(dataset.files)}\nleaves {l_total}\n  mixed {100 * ltc_total[1]/l_total:4.1f}% ({int(ltc_total[1])}) \n  empty {100 * ltc_total[0]/l_total:4.1f}% ({int(ltc_total[0])})")
+    print(f"files {len(dataset.files)}\nleaves {l_total}\n  mixed {100 * ltc_total[1] / l_total:4.1f}% ({int(ltc_total[1])}) \n  empty {100 * ltc_total[0] / l_total:4.1f}% ({int(ltc_total[0])})")
 
     plt.figure()
     plt.hist(np.array(ltc)[:, 0], range=(0, 8), bins=8, alpha=0.8, label="Empty")
