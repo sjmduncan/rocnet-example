@@ -1,5 +1,3 @@
-``utils.py`` is a script you can invoke to clean up training runs, but also includes a class and some member functions for working with training runs. 
-
 utils.py (script)
 =================
 

@@ -1,5 +1,3 @@
-"""Examine the loss decay curve of one or more training runs"""
-
 import argparse
 import os.path as pth
 
@@ -25,8 +23,8 @@ def _plot_loss(loss, title, run, n_params, logger):
     logger.info(f"         min_loss {min_loss[-1]:.1f} at epoch {epoch_min_loss[-1] + 1}")
     logger.info(f"        n_weights {sf(n_params[0], '', True)} {sf(n_params[1], '', True)} {sf(n_params[2], '', True)} (encoder node_classifier decoder)")
 
-    labels = labels + [l + "_vld" for l in labels]
-    labels = labels + [f"min {l:4}" + f"({x:5.1f}," + f"{y:5.1f})" for l, x, y in zip(labels, epoch_min_loss, min_loss)]
+    labels = labels + [label + "_vld" for label in labels]
+    labels = labels + [f"min {label:4}" + f"({x:5.1f}," + f"{y:5.1f})" for label, x, y in zip(labels, epoch_min_loss, min_loss)]
 
     [ax1.plot(x, y, "o") for x, y in zip(epoch_min_loss, min_loss)]
     ax1.legend(labels, ncols=4)
@@ -59,6 +57,6 @@ if __name__ == "__main__":
     model_n_params = [[n[0].total_params, n[1].total_params, n[2].total_params - n[1].total_params] for n in model_summaries]
     run_descriptions = [utils.describe_run(r) for r in runs]
     title = [f"{d['collection']}" for d in run_descriptions]
-    plts = [_plot_loss(l, t, r, p, run.logger) for l, t, r, p in zip(loss, title, runs, model_n_params)]
+    plts = [_plot_loss(label, t, r, p, run.logger) for label, t, r, p in zip(loss, title, runs, model_n_params)]
     if args.visualise:
         plt.show()

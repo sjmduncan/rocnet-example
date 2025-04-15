@@ -1,5 +1,3 @@
-"""Evaluate the compression ratio and various accuracy metrics over (some of) the test tiles in the dataset"""
-
 import argparse
 import os.path as pth
 
@@ -14,7 +12,7 @@ DEFAULT_CONFIG = {
     "n_samples": 20,
     "use_cuda": True,
     "datasets": ["../rocnet.data/default"],
-    "models": ["../rocnet.weights/default"],
+    "models": ["../rocnet.runs/default"],
     "files": ["../rocnet.data/raw/default/default.laz"],
 }
 

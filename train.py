@@ -1,5 +1,3 @@
-"""Train a rocnet model"""
-
 import argparse
 import math
 import os.path as pth
@@ -72,7 +70,7 @@ if __name__ == "__main__":
 
     dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=True, max_samples=run.cfg.max_samples, file_list=pth.join(run.dir, "train_files.csv"))
 
-    if run.cfg.max_samples is not None:
+    if run.cfg.max_samples:
         max_test_samples = int(math.ceil(run.cfg.max_samples * (1 - dataset.metadata.train_fraction)))
     else:
         max_test_samples = None

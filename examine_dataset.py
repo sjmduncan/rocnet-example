@@ -8,11 +8,12 @@ import utils
 
 
 def _get_args():
-    parser = argparse.ArgumentParser(prog="test.py", description="Examine the composition of a dataset and/or visualise the point  clouds")
-    parser.add_argument("folder", help="folder containing test.toml configuration for where to load the models from")
+    parser = argparse.ArgumentParser(prog="examine_dataset.py", description="Examine the composition of a dataset and/or visualise the point  clouds")
+    parser.add_argument("folder", help="Folder containing meta.toml and the train and test folders containing the tiles")
     parser.add_argument("--grid-dim", help="Grid dimension of the voxel grid contained in one octree", default=128)
     parser.add_argument("--leaf-dim", help="Size of the octree leaf block", default=32)
-    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=None)
+    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=100)
+    parser.add_argument("--train", help="Load the training dataset", default=True)
     parser.add_argument("--visualise", help="Render the point clouds", action="store_true")
     return parser
 

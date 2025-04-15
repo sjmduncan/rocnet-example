@@ -1,5 +1,3 @@
-"""Evaluate the compression ratio and various accuracy metrics over whole .laz files instead of just tiles"""
-
 import argparse
 import os.path as pth
 from os import makedirs
@@ -76,7 +74,7 @@ if __name__ == "__main__":
             save_file(results_file, results, overwrite=True)
         print("\n", flush=True)
         run.logger.info(f"{utils.describe_run(pth.split(codec._model.model_path)[0])['uid']:48} {results.compression_ratio:5.1f} {results.hamming_plus:10}+ {results.hamming_minus:10}- {results.chamfer:5.3f}")
-        run.logger.info(f"{pth.basename(file_in):48} {'':5} {100*results.hamming_plus/results.n_pts_in:9.1f}%+ {100*results.hamming_minus/results.n_pts_in:9.3}%-")
+        run.logger.info(f"{pth.basename(file_in):48} {'':5} {100 * results.hamming_plus / results.n_pts_in:9.1f}%+ {100 * results.hamming_minus / results.n_pts_in:9.3}%-")
         if args.visualise:
             run.logger.info("Visualising result")
             pc1 = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(pts_in))

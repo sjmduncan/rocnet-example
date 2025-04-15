@@ -276,10 +276,9 @@ def describe_run(run):
     collection = pth.basename(pth.split(run)[0])
     time = pth.split(run)[1].replace("train_", "")
     cfg = load_file(pth.join(run, "train.toml"), quiet=True)
-    note = cfg.note
     epoch = run_epochs(run)
     max_epoch = max(epoch) if len(epoch) > 0 else 0
-    return ed({"collection": collection, "time": time, "epochs": max_epoch, "note": note, "uid": f"{collection}-{time}-{model_id(cfg['model'])}"})
+    return ed({"collection": collection, "time": time, "epochs": max_epoch, "uid": f"{collection}-{time}-{model_id(cfg['model'])}"})
 
 
 def compact_view(geometries, bbox_size=None):
@@ -540,7 +539,7 @@ def tidy(folder: str, noop: bool):
 
 
 def _get_args():
-    parser = argparse.ArgumentParser(prog="utils.py", description="Utils for working with training runs and models.")
+    parser = argparse.ArgumentParser()
     parser.add_argument("folder", help="Training run or collection of training runs to operate on.")
     parser.add_argument("--clean-empty", help="Delete training run folders which did not produce *.pth snapshots. Use with caution, might delete stuff while training is in progress.", action="store_true")
     parser.add_argument("--clean-intermediate", help="Delete all sub-optimal snapshots in a training run, save only the best (optimal validation loss score) and latest (which might not be the same).", action="store_true")

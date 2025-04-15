@@ -1,5 +1,3 @@
-"""Process a set of point cloud files to produce a set of relatively compact .npy files which can be loaded quickly for training and testing"""
-
 import argparse
 import copy
 import glob
