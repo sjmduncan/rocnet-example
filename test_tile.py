@@ -71,4 +71,4 @@ if __name__ == "__main__":
     metrics = [[[p, m, c] for p, m, c in zip(hp, hm, chm)] for hp, hm, chm in zip(hdp, hdm, cham)]
 
     run.logger.info("Visualising")
-    utils.visualise_interactive(dataset, metrics, models[0].cfg.grid_dim, model_ids)
+    utils.visualise_interactive(dataset, models[0].cfg.grid_dim, model_ids, metrics)

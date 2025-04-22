@@ -2,9 +2,11 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
-from rocnet.dataset import Dataset
+from rocnet.dataset import Dataset, load_points
 
 import utils
+
+import open3d as o3d
 
 
 def _get_args():
@@ -21,17 +23,23 @@ def _get_args():
 if __name__ == "__main__":
     parser = _get_args()
     args = parser.parse_args()
+    utils.logger.info(f"Examining dataset: {args.folder} ({'train' if args.train else 'test'})")
+    utils.logger.info(f"grid_dim/leaf_dim = {args.grid_dim}/{args.leaf_dim}")
+    dataset = Dataset(args.folder, args.grid_dim, args.train, max_samples=args.max_samples)
+    utils.logger.info(f"Loading {len(dataset.files)} samples")
+    if args.visualise and len(dataset.files) > 20:
+        utils.logger.warning(f"Loading more than 20 files (n={len(dataset.files)}) with --visualise=True; This will be slow and use a lot of memory.")
 
-    run = utils.Run(args.folder, "train", "examine-dataset", False)
-
-    dataset = Dataset(run.cfg.dataset_path, args.grid_dim, args.train, max_samples=args.max_samples)
     dataset.read_files(args.grid_dim, args.leaf_dim)
 
     ltc = [t.leaf_type_count() for t in dataset]
     ltc_total = np.sum(ltc, axis=0)
     ltc_total[2] = ltc_total[2] / len(ltc)
     l_total = int(sum(ltc_total[:2]))
-    print(f"files {len(dataset.files)}\nleaves {l_total}\n  mixed {100 * ltc_total[1] / l_total:4.1f}% ({int(ltc_total[1])}) \n  empty {100 * ltc_total[0] / l_total:4.1f}% ({int(ltc_total[0])})")
+    utils.logger.info(f"files {len(dataset.files)}")
+    utils.logger.info(f"leaves {l_total}")
+    utils.logger.info(f"mixed {100 * ltc_total[1] / l_total:4.1f}% ({int(ltc_total[1])})")
+    utils.logger.info(f"empty {100 * ltc_total[0] / l_total:4.1f}% ({int(ltc_total[0])})")
 
     plt.figure()
     plt.hist(np.array(ltc)[:, 0], range=(0, 8), bins=8, alpha=0.8, label="Empty")
@@ -43,4 +51,14 @@ if __name__ == "__main__":
     expected_occupancy = 0.33
     plt.hist(np.array(ltc)[:, 2], range=(0, expected_occupancy), bins=30)
     plt.title("Distribution of average mixed leaf occupancy per octree")
+
+    if args.visualise:
+        pts = [load_points(f, args.grid_dim, 1.0 / dataset.grid_div) for f in dataset.files]
+        ptclouds = np.array([o3d.geometry.PointCloud(o3d.utility.Vector3dVector(p[:, :3])) for p in pts])
+        for p, g in zip(pts, ptclouds):
+            g.colors = o3d.utility.Vector3dVector(p[:, 3:] / 255.0)
+        n = 5
+        ptclouds = ptclouds.reshape((1, n, int(len(ptclouds) / n)))
+        utils.visualise_interactive(ptclouds, args.grid_dim)
+
     plt.show()

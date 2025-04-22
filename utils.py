@@ -291,6 +291,9 @@ def compact_view(geometries, bbox_size=None):
 
     :returns: list of bounding boxes of the models
     """
+    if geometries[0].get_geometry_type() == o3d.geometry.VoxelGrid.Type.VoxelGrid:
+        raise "VoxelGrid translation not supported: can't compact geometries "
+
     [g.translate(-g.get_min_bound()) for g in geometries]
     bl = [g.get_min_bound() for g in geometries]
     if bbox_size is None:
@@ -311,17 +314,17 @@ def compact_view(geometries, bbox_size=None):
     return boxes
 
 
-def visualise_interactive(data, metrics, bbox_size, model_meta):
+def visualise_interactive(data, bbox_size, model_meta=None, metrics=None):
     """Visualise a list of geometries with a matching list of metrics and model metadata, with keyboard controls for cycling through models and samples
 
     :param data: list of lists of geometries to render
     :type data: list
-    :param metrics: list of lists of metrics to print for each geometry sample
-    :type metrics: list
     :param bbox_size: bbox_size to pass to compact_geometries
     :type bbox_size: float
     :param model_meta: list of metadata for each model
     :type model_meta: list
+    :param metrics: list of lists of metrics to print for each geometry sample
+    :type metrics: list
 
     """
     dataset_idx = 0
@@ -331,6 +334,8 @@ def visualise_interactive(data, metrics, bbox_size, model_meta):
     bounding_boxes = [[compact_view(s, bbox_size) for s in d] for d in data]
 
     def print_metric():
+        if model_meta is None or metrics is None:
+            return
         print()
 
         for metric, meta in zip(np.array(metrics[dataset_idx][sample_idx]).T, model_meta):
