@@ -14,7 +14,7 @@ def _get_args():
     parser.add_argument("folder", help="Folder containing meta.toml and the train and test folders containing the tiles")
     parser.add_argument("--grid-dim", help="Grid dimension of the voxel grid contained in one octree", default=128)
     parser.add_argument("--leaf-dim", help="Size of the octree leaf block", default=32)
-    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=100)
+    parser.add_argument("--max-samples", help="Maximum number of samples to load from the dataset", default=20)
     parser.add_argument("--train", help="Load the training dataset", default=True)
     parser.add_argument("--visualise", help="Render the point clouds", action="store_true")
     return parser
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ltc_total = np.sum(ltc, axis=0)
     ltc_total[2] = ltc_total[2] / len(ltc)
     l_total = int(sum(ltc_total[:2]))
-    utils.logger.info(f"files {len(dataset.files)}")
+    utils.logger.info(f"samples {len(dataset.files)}")
     utils.logger.info(f"leaves {l_total}")
     utils.logger.info(f"mixed {100 * ltc_total[1] / l_total:4.1f}% ({int(ltc_total[1])})")
     utils.logger.info(f"empty {100 * ltc_total[0] / l_total:4.1f}% ({int(ltc_total[0])})")
@@ -53,10 +53,11 @@ if __name__ == "__main__":
     plt.title("Distribution of average mixed leaf occupancy per octree")
 
     if args.visualise:
-        pts = [load_points(f, args.grid_dim, 1.0 / dataset.grid_div) for f in dataset.files]
+        utils.logger.info("Loading files for visualization")
+        pts = [load_points(f, 1.0 / dataset.grid_div) for f in dataset.files]
         ptclouds = np.array([o3d.geometry.PointCloud(o3d.utility.Vector3dVector(p[:, :3])) for p in pts])
         for p, g in zip(pts, ptclouds):
-            g.colors = o3d.utility.Vector3dVector(p[:, 3:] / 255.0)
+            g.colors = o3d.utility.Vector3dVector(p[:, 3:])
         n = 5
         ptclouds = ptclouds.reshape((1, n, int(len(ptclouds) / n)))
         utils.visualise_interactive(ptclouds, args.grid_dim)

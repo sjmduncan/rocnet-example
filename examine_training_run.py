@@ -6,7 +6,6 @@ import numpy as np
 from rocnet.rocnet import RocNet
 
 import utils
-from test_tile import DEFAULT_CONFIG
 from torchinfo import summary
 from rocnet.utils import sizeof_fmt as sf
 
@@ -48,8 +47,7 @@ def _get_args():
 if __name__ == "__main__":
     parser = _get_args()
     args = parser.parse_args()
-    run = utils.Run(args.folder, "test", "examine", False, DEFAULT_CONFIG)
-    runs = utils.search_runs(run.cfg.models)
+    runs = utils.search_runs(args.folder)
     epoc = [utils.run_epochs(r) for r in runs]
     loss = [np.loadtxt(pth.join(r, f"model_{max(e)}_loss.csv")) for r, e in zip(runs, epoc)]
     models = [RocNet(pth.join(r, "model.pth")) for r in runs]
@@ -57,6 +55,5 @@ if __name__ == "__main__":
     model_n_params = [[n[0].total_params, n[1].total_params, n[2].total_params - n[1].total_params] for n in model_summaries]
     run_descriptions = [utils.describe_run(r) for r in runs]
     title = [f"{d['collection']}" for d in run_descriptions]
-    plts = [_plot_loss(label, t, r, p, run.logger) for label, t, r, p in zip(loss, title, runs, model_n_params)]
-    if args.visualise:
-        plt.show()
+    plts = [_plot_loss(label, t, r, p, utils.logger) for label, t, r, p in zip(loss, title, runs, model_n_params)]
+    plt.show()

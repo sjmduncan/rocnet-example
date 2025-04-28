@@ -40,13 +40,13 @@ if __name__ == "__main__":
     model_ids = [utils.describe_run(pth.split(r)[0]) for r in model_paths]
     datasets = [Dataset(d, models[0].cfg.grid_dim, train=False, max_samples=run.cfg.n_samples) for d in run.cfg.datasets]
     run.logger.info("Loading Datasets")
-    original_pointsets = [[load_points(d, dset.metadata.grid_dim, 1.0 / dset.grid_div, dset.metadata.vox_size) for d in dset.files] for dset in datasets]
+    original_pointsets = [[load_points(d, 1.0 / dset.grid_div, dset.metadata.vox_size) for d in dset.files] for dset in datasets]
     original_pcsets = [[o3d.geometry.PointCloud(points=o3d.utility.Vector3dVector(points[:, :3])) for points in gridset] for gridset in original_pointsets]
     if models[0].cfg.voxel_channels == 3:
         run.logger.info("Normalizing colour channels")
         for pcsets, ptsets in zip(original_pcsets, original_pointsets):
             for pc, ps in zip(pcsets, ptsets):
-                pc.colors = o3d.utility.Vector3dVector(ps[:, 3:].astype("float") / 255.0)
+                pc.colors = o3d.utility.Vector3dVector(ps[:, 3:].astype("float"))
 
     with torch.no_grad():
         run.logger.info("Encoding points")

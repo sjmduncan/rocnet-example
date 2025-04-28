@@ -294,13 +294,13 @@ def compact_view(geometries, bbox_size=None):
     if geometries[0].get_geometry_type() == o3d.geometry.VoxelGrid.Type.VoxelGrid:
         raise "VoxelGrid translation not supported: can't compact geometries "
 
-    [g.translate(-g.get_min_bound()) for g in geometries]
-    bl = [g.get_min_bound() for g in geometries]
     if bbox_size is None:
+        bl = [g.get_min_bound() for g in geometries]
         tr = [g.get_max_bound() for g in geometries]
     else:
-        tr = [b + np.array([bbox_size, bbox_size, bbox_size]) for b in bl]
-    sizes = [r - b for b, r in zip(bl, tr)]
+        bl = [np.array([0, 0, 0]) for g in geometries]
+        tr = [np.array([bbox_size, bbox_size, bbox_size]) for g in geometries]
+    sizes = [top_right - bottom_left for bottom_left, top_right in zip(bl, tr)]
     x_offsets = [s[0] * 1.1 for s in sizes]
     x_offsets = np.cumsum(x_offsets)
     np.insert(x_offsets, 0, 0)
