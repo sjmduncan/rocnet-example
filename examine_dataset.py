@@ -56,8 +56,10 @@ if __name__ == "__main__":
         utils.logger.info("Loading files for visualization")
         pts = [load_points(f, 1.0 / dataset.grid_div) for f in dataset.files]
         ptclouds = np.array([o3d.geometry.PointCloud(o3d.utility.Vector3dVector(p[:, :3])) for p in pts])
+
         for p, g in zip(pts, ptclouds):
-            g.colors = o3d.utility.Vector3dVector(p[:, 3:])
+            if p.shape[1] == 6:
+                g.colors = o3d.utility.Vector3dVector(p[:, 3:])
         n = 5
         ptclouds = ptclouds.reshape((1, n, int(len(ptclouds) / n)))
         utils.visualise_interactive(ptclouds, args.grid_dim)

@@ -62,12 +62,16 @@ if __name__ == "__main__":
                 for pc, ps in zip(pcs, pts):
                     pc.colors = o3d.utility.Vector3dVector(ps[:, 3:].astype("float"))
 
-    dataset = [[[o] + r for o, r in zip(oset, rset)] for oset, rset in zip(original_pcsets, recovered_pcsets)]
+    original_voxels = [[o3d.geometry.VoxelGrid.create_from_point_cloud(p, 1) for p in pcset] for pcset in original_pcsets]
+    recovered_voxels = [[[o3d.geometry.VoxelGrid.create_from_point_cloud(p, 1) for p in pcset] for pcset in pcsets] for pcsets in recovered_pcsets]
+
+    dataset = [[[o] + r for o, r in zip(oset, rset)] for oset, rset in zip(original_voxels, recovered_voxels)]
+    dataset_pts = [[[o] + r for o, r in zip(oset, rset)] for oset, rset in zip(original_pcsets, recovered_pcsets)]
     run.logger.info("Compupting Hausdorff")
-    hdm = [[[utils.hausdorff(dset[0], d, False) for d in dset[1:]] for dset in dsets] for dsets in dataset]
-    hdp = [[[utils.hausdorff(d, dset[0], False) for d in dset[1:]] for dset in dsets] for dsets in dataset]
+    hdm = [[[utils.hausdorff(dset[0], d, False) for d in dset[1:]] for dset in dsets] for dsets in dataset_pts]
+    hdp = [[[utils.hausdorff(d, dset[0], False) for d in dset[1:]] for dset in dsets] for dsets in dataset_pts]
     run.logger.info("Compupting chamfer")
-    cham = [[[utils.chamfer(d, dset[0]) for d in dset[1:]] for dset in dsets] for dsets in dataset]
+    cham = [[[utils.chamfer(d, dset[0]) for d in dset[1:]] for dset in dsets] for dsets in dataset_pts]
     metrics = [[[p, m, c] for p, m, c in zip(hp, hm, chm)] for hp, hm, chm in zip(hdp, hdm, cham)]
 
     run.logger.info("Visualising")

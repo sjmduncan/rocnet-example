@@ -63,13 +63,13 @@ def chamfer(p1, p2):
         return -1
 
 
-def hamming(v1, v2, two_sided=True):
+def hamming(v1: o3d.geometry.VoxelGrid, v2: o3d.geometry.VoxelGrid, two_sided=True):
     """Compute the hamming distance between v1 and v2 (or just from v1 to v2 if two_sided=False)
 
-    :param p1: first point cloud
-    :type p1: open3d.geometry.PointCloud
-    :param p2: second point cloud
-    :type p2: open3d.geometry.PointCloud
+    :param p1: First voxel grid
+    :type p1: open3d.geometry.VoxelGrid
+    :param p2: second voxel grid
+    :type p2: open3d.geometry.VoxelGrid
     :param two_sided: set to false to compute the distance from p1 to p2 instead of in both directions (default=True)
     :type two_sided: bool
     :returns: hamming distance (float)
@@ -291,8 +291,6 @@ def compact_view(geometries, bbox_size=None):
 
     :returns: list of bounding boxes of the models
     """
-    if geometries[0].get_geometry_type() == o3d.geometry.VoxelGrid.Type.VoxelGrid:
-        raise "VoxelGrid translation not supported: can't compact geometries "
 
     if bbox_size is None:
         bl = [g.get_min_bound() for g in geometries]
@@ -306,7 +304,11 @@ def compact_view(geometries, bbox_size=None):
     np.insert(x_offsets, 0, 0)
     corners = [[bl[0][0] + o, bl[0][1], bl[idx][2]] for idx, o in enumerate(x_offsets)]
     txs = [c - b for c, b in zip(corners, bl)]
-    [g.translate(t) for g, t in zip(geometries, txs)]
+    if geometries[0].get_geometry_type() == o3d.geometry.VoxelGrid.Type.VoxelGrid:
+        for g, t in zip(geometries, txs):
+            g.origin = g.origin + t
+    else:
+        [g.translate(t) for g, t in zip(geometries, txs)]
     boxes = [o3d.geometry.AxisAlignedBoundingBox(b, t) for b, t in zip(bl, tr)]
     for i, b in enumerate(boxes):
         b.color = [0, 0, 0] if i == 0 else [0, 1, 0]
