@@ -1,5 +1,7 @@
 # RocNet Example
 
+[Documentation](https://sjmduncan.github.io/rocnet/index.html)
+
 This is a working example for training and evaluating a RocNet model from a LiDAR dataset.
 
 ![An example of RocNet compression](./media/rocnet-compression.png "asdf")
@@ -50,9 +52,10 @@ python train.py ./data/weights
 Usage pattern for any script goes like this (using `train.py` as an example):
 
 1. Activate the python environment
-2. run `python train.py $TGT_WORK_DIR`.
+2. run `python train.py $TGT_WORK_DIR`
+   1. To run on a SLURM login node you'll need to run `export OMP_NUM_THREADS=1` first
 3. If `$TGT_WORK_DIR/train.toml` exists then training run and model config is loaded from that file and a training run is started.
-4. If `$TGT_WORK_DIR/train.toml` does not exist it will be created and populated with default values, the script will then exist and prompt you to modify the defaul values and re-run step 1.
+4. If `$TGT_WORK_DIR/train.toml` does not exist it will be created and populated with default values, the script will then exist and prompt you to modify the defaul values and re-run step 1
 
 ### Config File Names and Defaults
 
