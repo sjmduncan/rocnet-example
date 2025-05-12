@@ -75,6 +75,10 @@ if __name__ == "__main__":
     else:
         max_test_samples = None
 
+    run.logger.info(f"Torch={torch.__version__}")
+    run.logger.info(f"CUDA={torch.version.cuda}")
+    run.logger.info(f"cuDNN={torch.backends.cudnn.version()}")
+
     valid_dataset = Dataset(run.cfg.dataset_path, run.cfg.model.grid_dim, train=False, max_samples=max_test_samples, file_list=pth.join(run.dir, "valid_files.csv"))
     trainer = Trainer(run.run_dir, run.cfg, dataset, valid_dataset, resume_path)
     if args.resume_from is not None:

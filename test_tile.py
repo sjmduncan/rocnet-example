@@ -11,9 +11,8 @@ import utils
 DEFAULT_CONFIG = {
     "n_samples": 20,
     "use_cuda": True,
-    "datasets": ["../rocnet.data/default"],
-    "models": ["../rocnet.runs/default"],
-    "files": ["../rocnet.data/raw/default/default.laz"],
+    "datasets": ["../rocnet-data/default"],
+    "models": ["../rocnet-runs/default"],
 }
 
 
